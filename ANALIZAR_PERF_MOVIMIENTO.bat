@@ -1,0 +1,4 @@
+@echo off
+cd /d "%~dp0juego3d_v1_5"
+py analizar_perf_movimiento.py
+pause

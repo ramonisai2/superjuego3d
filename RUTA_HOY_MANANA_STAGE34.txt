@@ -1,0 +1,1145 @@
+RUTA DE TRABAJO - HOY Y MANANA
+
+Estado actual:
+- Etapa actual: Stage38 B - ESTRUCTURA VERIFICABLE.
+- Modo recomendado para jugar/probar: INICIO_JUEGO.bat.
+- Vulkan sigue experimental. No usarlo como modo principal todavia.
+- Metodo de terreno default: current.
+
+HOY - PRIORIDAD: SENTIR EL JUEGO Y MEDIR LO QUE DUELE
+
+1. Probar OpenGL estable
+   - Ejecutar: LANZAR_OPENGL.bat
+   - Caminar en tercera persona por zonas con:
+     - lagos
+     - mesetas
+     - arboles
+     - riachuelos/orillas
+   - Revisar si el HUD ya se siente menos saturado.
+   - Revisar si al moverse siguen bajando mucho los FPS.
+
+2. Si hay bajones al moverse
+   - Ejecutar: LANZAR_PERF_MOVIMIENTO_OPENGL_LEGACY_LOG.bat
+   - Caminar 1-2 minutos cruzando chunks.
+   - Cerrar el juego.
+   - Ejecutar: ANALIZAR_PERF_MOVIMIENTO.bat
+
+3. Revisar terreno desde arriba
+   - Ejecutar: PREVISUALIZAR_TERRENO.bat
+   - Mirar:
+     - juego3d_v1_5\previews\terrain_methods_preview.png
+     - juego3d_v1_5\previews\terrain_water_debug_preview.png
+   - Objetivo: confirmar si lagos/riachuelos se ven naturales.
+
+4. Decision de hoy
+   - Si OpenGL se siente mejor:
+     - seguir optimizando current.
+   - Si OpenGL sigue con tirones fuertes:
+     - priorizar chunks/mesh/decoraciones antes que Vulkan.
+   - Si el terreno se ve pobre:
+     - ajustar lagos, riachuelos y mesetas antes de mas features.
+
+MANANA - PRIORIDAD: ELEGIR SIGUIENTE FRENTE
+
+Opcion A - Si el problema principal son FPS/chunks
+   Stage34 C - CHUNKS MAS BARATOS (HECHO)
+   Objetivo:
+   - Reducir costo de generar chunk completo.
+   - Bajar trabajo de decoraciones, rocas, pasto y agua por celda.
+   - Mantener current como metodo default.
+   Resultado:
+   - current bajo de cerca de 480-510 ms a cerca de 208-233 ms por chunk.
+   - fast_noise_lite no pasa a default porque gana poco y pierde agua visible.
+
+Opcion A2 - Si el problema son tirones al cruzar chunks
+   Stage34 D - LOD SIN PICOS (HECHO)
+   Objetivo:
+   - Evitar crear varios chunks simples/LOD de golpe mientras el jugador camina.
+   - Encolar LOD faltantes y crear pocos por tanda.
+   Resultado:
+   - LOD simples ahora tienen presupuesto: JUEGO_LOD_CREAR_POR_TANDA=2 por defecto.
+   - Los logs pueden separar chunk_lod de chunk_compile.
+
+Opcion A3 - Si el log muestra update/player_move/world_context alto
+   Stage34 E - MOVIMIENTO MAS LIGERO (HECHO)
+   Objetivo:
+   - Apagar DEBUG_RENDER_ALL_CHUNKS por defecto.
+   - Evitar consultas repetidas de agua/contexto cada frame.
+   Resultado:
+   - Modo debug de todos los chunks solo se activa con JUEGO_DEBUG_RENDER_ALL_CHUNKS=1.
+   - Agua/altura usan cache espacial.
+   - Contexto de mundo se refresca por intervalo/movimiento, no siempre.
+   - La altura cacheada detecta si viene de LOD o detalle para evitar caidas a calculo procedural caro.
+
+Opcion A4 - Si el problema principal es lectura de enemigos/combate
+   Stage34 F - SLIME CON HUELLA CLARA (HECHO)
+   Objetivo:
+   - Alinear la huella X/Z del slime con jugador y NPC sin igualar la altura.
+   - Darle mas personalidad al movimiento del slime.
+   - Hacer visible el rastro al morir.
+   Resultado:
+   - Slime mas ancho/profundo, pero sigue siendo bajo.
+   - Animacion con salto suave, balanceo, respiracion, pupilas y cejas agresivas.
+   - Charco de muerte mas grande y elevado sobre el terreno.
+
+Opcion A5 - Si el siguiente paso es identidad/memoria de NPCs
+   Stage34 G - NPC ID ESTABLE (HECHO)
+   Objetivo:
+   - Dar a cada NPC un ID unico generado por algoritmo.
+   - No cambiar nombre, titulo, profesion, hostilidad ni rasgos especiales.
+   - Dejar lista la base para conversaciones/memoria futuras.
+   Resultado:
+   - NPC.id usa seed + posicion + origen + slot.
+   - NPC.seed conserva el ADN de atributos.
+   - Conversaciones siguen igual por ahora.
+
+Opcion A6 - Si el siguiente paso es NPCs vivos
+   Stage35 A - CUERPO NPC (HECHO)
+   Objetivo:
+   - Dar a cada NPC necesidades internas.
+   - Empezar por cuerpo/simulacion antes que por modelo de lenguaje.
+   - Preparar datos para memoria, decisiones y conversacion futura.
+   Resultado:
+   - NPCs tienen food, water, energy, security, social y stress.
+   - current_need e intent resumen que necesita o quiere hacer el NPC.
+   - La energia afecta un poco la velocidad de movimiento.
+
+Opcion A7 - Si el siguiente paso es identidad visual de NPCs
+   Stage35 B - NPCS CON SKIN (HECHO)
+   Objetivo:
+   - Usar la skin del jugador como base para NPCs.
+   - Mantener acentos de profesion/legendario para distinguirlos.
+   - Animar brazos/piernas al caminar.
+   Resultado:
+   - NPCs usan render_player_avatar.
+   - Si falla la textura, vuelven al humanoide voxel anterior.
+   - Queda listo para variaciones visuales por NPC.
+
+Opcion A8 - Si el siguiente paso es mezcla visual de NPCs
+   Stage35 C - SKINS MODULARES (HECHO)
+   Objetivo:
+   - Separar apariencia en cabeza, torso y pantalon.
+   - Reutilizar pocos atlas para crear muchas combinaciones.
+   - Preparar cara/torso masculino y femenino.
+   Resultado:
+   - render_player_avatar acepta skin_zones.
+   - NPCs tienen skin_preset, skin_zones y visual_profession.
+   - Carpintero viejo puede usarse completo o mezclado por zonas.
+
+Opcion A9 - Si el siguiente paso es preparar razas visuales
+   Stage35 D - RASGOS 3D (HECHO)
+   Objetivo:
+   - Sacar nariz/orejas principales de la textura y llevarlas al modelo 3D.
+   - Preparar estilos de oreja para humano, elfo y duende.
+   Resultado:
+   - render_player_avatar acepta nose_style y ear_style.
+   - NPCs guardan nose_style y ear_style.
+   - Nariz y orejas ya son piezas 3D.
+
+Opcion A10 - Si el siguiente paso es color correcto de rasgos
+   Stage35 E - NARIZ DESDE ATLAS (HECHO)
+   Objetivo:
+   - Leer el color de nariz desde la textura de cabeza.
+   - Bajar la nariz 3D para que no quede alta.
+   Resultado:
+   - La nariz usa sample_head_nose_color().
+   - El color sale del atlas de la cabeza activa.
+
+Opcion A11 - Si el siguiente paso es limpiar silueta de NPCs
+   Stage35 F - EQUIPO EN ESPALDA (HECHO)
+   Objetivo:
+   - Quitar peto frontal y cabello 3D que tapaban la textura.
+   - Usar la espalda para herramienta/arma favorita.
+   Resultado:
+   - NPCs usan front_gear=none.
+   - NPCs usan show_hair_volume=False.
+   - NPCs tienen favorite_tool en la espalda.
+
+Opcion A12 - Si el siguiente paso es variedad humana
+   Stage35 G - PROFESIONES HUMANAS (HECHO)
+   Objetivo:
+   - Agregar al menos 8 profesiones humanas.
+   - Darles color, textura y forma corporal propia.
+   - Reservar herramientas/armas boxel para despues.
+   Resultado:
+   - carpintero, herrero, granjero, cazador, minero, mercader, guardia y curandero.
+   - Cada perfil tiene textura modular, color, body_shape y favorite_tool reservado.
+   - Se creo preview_profesiones_humanas_8.png.
+
+Opcion A13 - Si el siguiente paso es consistencia visual de boxels
+   Stage35 H - UNIDAD BOXEL (HECHO)
+   Objetivo:
+   - Crear una unidad comun para rasgos, accesorios, herramientas y armas.
+   - Evitar medidas sueltas en piezas nuevas.
+   Resultado:
+   - BOXEL_UNIT=0.055.
+   - draw_boxel() usa cantidades enteras de boxels.
+   - Nariz, orejas y herramientas reservadas usan la unidad comun.
+
+Opcion A14 - Si el siguiente paso es activar herramientas visibles
+   Stage35 I - EQUIPO BOXEL (HECHO)
+   Objetivo:
+   - Mostrar la herramienta o arma favorita del NPC en la espalda.
+   - Mantener todas las piezas nuevas con BOXEL_UNIT.
+   - Preparar profesiones sin convertir todavia las herramientas en gameplay.
+   Resultado:
+   - Carpintero/herrero usan martillo, granjero azada, cazador arco.
+   - Minero usa pico, mercader bolsa, guardia espada y curandero baston.
+   - Las piezas siguen siendo visuales: no dan ataque ni inventario por ahora.
+
+Opcion A15 - Si el siguiente paso es preparar IA compacta por NPC
+   Stage35 J - IDENTIDAD DE OFICIO (HECHO)
+   Objetivo:
+   - Dar a cada profesion datos estables para futuro comportamiento.
+   - Exponer oficio, herramienta, lugar de trabajo, accion y temperamento.
+   - Mejorar la interaccion sin cambiar nombres ni atributos especiales.
+   Resultado:
+   - needs_snapshot incluye identidad, profesion, herramienta y estado.
+   - interactuar() responde con oficio, tarea y necesidad actual.
+   - Los datos son deterministas y quedan listos para memoria/IA por ID.
+
+Opcion A16 - Si el siguiente paso es memoria viva por NPC
+   Stage35 K - MEMORIA POR ID (HECHO)
+   Objetivo:
+   - Crear una memoria ligera por ID estable del NPC.
+   - Recordar encuentros, confianza, ultima necesidad e intencion.
+   - Preparar el terreno para conversaciones e IA compacta sin modelo todavia.
+   Resultado:
+   - NPC_MEMORY_REGISTRY guarda recuerdos en sesion por npc.id.
+   - interactuar() suma encuentros y confianza.
+   - needs_snapshot incluye memory para depuracion y futuro guardado.
+
+Opcion A17 - Si el siguiente paso es guardar la memoria
+   Stage35 L - MEMORIA GUARDABLE (HECHO)
+   Objetivo:
+   - Exportar/importar memoria NPC por ID estable.
+   - Guardar encuentros y confianza dentro de world_save.json.
+   - Mantener compatibilidad con saves viejos sin memoria.
+   Resultado:
+   - export_npc_memory() e import_npc_memory() administran registros.
+   - save_game() escribe npc_memory.
+   - load_game_data() restaura npc_memory si existe.
+
+Opcion A18 - Si el siguiente paso es conducta basica
+   Stage35 M - RUTINA DE OFICIO (HECHO)
+   Objetivo:
+   - Hacer que los NPCs elijan actividad segun necesidad y profesion.
+   - Darles anclas de trabajo, descanso y socializacion.
+   - Mantenerlo barato, determinista y sin modelo de lenguaje todavia.
+   Resultado:
+   - Si estan tranquilos, se mueven cerca de su ancla de oficio.
+   - Si tienen hambre, sed, cansancio, inseguridad o necesidad social cambian objetivo.
+   - needs_snapshot y memoria exponen activity y last_activity.
+
+Opcion A19 - Si el siguiente paso es que las rutinas sirvan
+   Stage35 N - NECESIDADES ACTIVAS (HECHO)
+   Objetivo:
+   - Hacer que llegar a una actividad recupere necesidades.
+   - Bajar estres al descansar, socializar o buscar seguridad.
+   - Mantener el sistema barato y sin inventario real todavia.
+   Resultado:
+   - Cerca del ancla correcta suben comida, agua, energia, seguridad o social.
+   - needs_snapshot expone activity_effect y activity_progress.
+   - El oficio en calma mantiene energia/social lentamente y reduce estres.
+
+Opcion A20 - Si el siguiente paso es preparar conversacion compacta
+   Stage35 O - ANIMO NPC (HECHO)
+   Objetivo:
+   - Derivar animo y actitud desde necesidades, estres, confianza y oficio.
+   - Exponer un conversation_context pequeno para IA/dialogos futuros.
+   - Guardar ultimo animo/actitud en memoria.
+   Resultado:
+   - NPCs tienen mood, stance y mood_detail.
+   - needs_snapshot incluye conversation_context.
+   - interactuar() muestra estado y actitud sin usar LLM todavia.
+
+Opcion A21 - Si el siguiente paso es dialogo sin LLM
+   Stage35 P - DIALOGO CONTEXTUAL (HECHO)
+   Objetivo:
+   - Usar conversation_context para respuestas mas vivas.
+   - Mantener dialogos deterministas, baratos y sin modelo de lenguaje todavia.
+   - Registrar lineas de dialogo en memoria.
+   Resultado:
+   - interactuar() usa necesidad, animo, actitud, oficio y confianza.
+   - conversation_context incluye tone.
+   - La memoria registra eventos dialogue con la linea emitida.
+
+Opcion A22 - Si el siguiente paso es preparar LLM local
+   Stage35 Q - PAQUETE IA LOCAL (HECHO)
+   Objetivo:
+   - Crear un contexto compacto por NPC para un futuro modelo local.
+   - Incluir identidad, estado, oficio, relacion y recuerdos recientes.
+   - Definir reglas para no cambiar nombres ni inventar atributos.
+   Resultado:
+   - npc_ai_context_packet() genera schema stage35_q_npc_ai_context_v1.
+   - NPC.ai_context_packet() lo expone.
+   - needs_snapshot marca ai_context_ready=True.
+
+Opcion A23 - Si el siguiente paso es puente hacia IA local
+   Stage35 R - PUENTE IA LOCAL (HECHO)
+   Objetivo:
+   - Construir un prompt compacto desde el paquete IA del NPC.
+   - Permitir un responder local futuro sin cambiar interactuar().
+   - Mantener fallback determinista si no hay modelo.
+   Resultado:
+   - build_npc_dialogue_prompt() arma contexto textual corto.
+   - NPC.dialogue_prompt() lo expone.
+   - NPC.reply_to_player() acepta responder opcional o usa interactuar().
+
+Opcion A24 - Si el siguiente paso es proteger FPS antes del LLM
+   Stage35 S - CACHE IA LOCAL (HECHO)
+   Objetivo:
+   - Evitar llamadas repetidas al responder local con el mismo estado.
+   - Saneamiento de respuestas para mantenerlas cortas y seguras para UI.
+   - Preparar presupuesto basico antes de conectar un modelo real.
+   Resultado:
+   - NPC_AI_REPLY_CACHE guarda respuestas por NPC/pregunta/estado.
+   - NPC.reply_to_player() acepta use_cache.
+   - npc_ai_cache_stats() y clear_npc_ai_cache() ayudan a depurar.
+
+Opcion A25 - Si el siguiente paso es evitar bloqueo del modelo
+   Stage35 T - COLA IA LOCAL (HECHO)
+   Objetivo:
+   - Encolar respuestas IA para procesarlas con presupuesto por tick.
+   - Evitar que un modelo local bloquee interaccion o FPS.
+   - Mantener cache y fallback determinista.
+   Resultado:
+   - queue_npc_ai_reply() crea solicitudes pendientes.
+   - drain_npc_ai_queue() procesa pocas respuestas por llamada.
+   - NPC.queue_reply_to_player() y pop_queued_reply() exponen el flujo.
+
+Opcion A26 - Si el siguiente paso es diagnosticar IA local
+   Stage35 U - ESTADO IA LOCAL (HECHO)
+   Objetivo:
+   - Exponer estado de cola/cache para depuracion.
+   - Saber por NPC si hay solicitud pendiente o respuesta lista.
+   - Preparar integracion con UI o logs sin tocar el modelo.
+   Resultado:
+   - npc_ai_runtime_stats() agrupa cache y cola.
+   - NPC.ai_status() muestra queued/ready/idle y request IDs.
+   - needs_snapshot incluye ai_status.
+
+Opcion A27 - Si el siguiente paso es adaptador de modelo
+   Stage35 V - ADAPTADOR MODELO LOCAL (HECHO)
+   Objetivo:
+   - Crear un adaptador reemplazable para modelo local.
+   - Mantener dry-run determinista mientras no haya backend real.
+   - Permitir que NPC.reply_to_player() use el adaptador por defecto.
+   Resultado:
+   - LocalNPCModelAdapter expone reply(), status() y __call__().
+   - configure_npc_local_model() cambia modo/nombre/presupuesto.
+   - npc_local_model_status() ayuda a depurar.
+
+Opcion A28 - Si el siguiente paso es enchufar backend local
+   Stage35 W - BACKEND IA INYECTABLE (HECHO)
+   Objetivo:
+   - Permitir conectar un callable como backend local real.
+   - Mantener dry-run y fallback si el backend falla o no existe.
+   - No acoplar NPCs a llama.cpp, Ollama ni otro motor todavia.
+   Resultado:
+   - LocalNPCModelAdapter acepta backend.
+   - set_npc_local_model_backend() instala backend callable.
+   - clear_npc_local_model_backend() vuelve a dry-run seguro.
+
+Opcion A29 - Si el siguiente paso es hablar con un proceso local
+   Stage35 X - COMANDO IA LOCAL (HECHO)
+   Objetivo:
+   - Preparar un backend por comando local sin acoplar a un motor concreto.
+   - Enviar packet/prompt como JSON por stdin.
+   - Leer respuesta por stdout con timeout y fallback seguro.
+   Resultado:
+   - LocalCommandNPCBackend ejecuta comando sin shell.
+   - configure_npc_command_backend() instala el backend.
+   - npc_local_model_status() reporta estado del comando.
+
+Opcion A30 - Si el siguiente paso es validar el puente local
+   Stage35 Y - PROBE IA LOCAL (HECHO)
+   Objetivo:
+   - Probar si el backend local responde antes de usarlo en NPCs reales.
+   - Medir tiempo aproximado y capturar el ultimo error.
+   - Mantener el juego sin depender todavia de un modelo externo.
+   Resultado:
+   - probe_npc_local_model_backend() ejecuta una prueba corta.
+   - Devuelve ok, reply, elapsed_ms, used_backend, calls_added, last_error y status.
+   - El probe no guarda memoria ni toca NPCs reales.
+
+Opcion A31 - Si el siguiente paso es guardar configuracion local
+   Stage35 Z - CONFIG IA LOCAL (HECHO)
+   Objetivo:
+   - Guardar y cargar comando, timeout y limite de prompt del puente IA.
+   - Aplicar configuracion sin ejecutar automaticamente ningun modelo.
+   - Mantener el comando como lista segura, no como texto shell.
+   Resultado:
+   - save_npc_local_model_config() escribe JSON normalizado.
+   - load_npc_local_model_config() lee sin aplicar por defecto.
+   - apply_npc_local_model_config() instala el backend sin ejecutarlo.
+
+Opcion A32 - Si el siguiente paso es cuidar FPS con IA local
+   Stage36 A - TELEMETRIA IA NPC (HECHO)
+   Objetivo:
+   - Medir costo de respuestas IA antes de conectar un modelo real.
+   - Separar cache, backend, fallback, errores y rechazos de cola.
+   - Integrar las metricas en npc_ai_runtime_stats().
+   Resultado:
+   - npc_ai_telemetry_stats() resume requests, tiempos y fuentes.
+   - clear_npc_ai_telemetry() reinicia contadores.
+   - Las respuestas directas y por cola registran su fuente.
+
+Opcion A33 - Si el siguiente paso es ver la telemetria en juego
+   Stage36 B - HUD IA NPC (HECHO)
+   Objetivo:
+   - Mostrar metricas IA NPC solo cuando se active debug.
+   - Mantener el HUD normal limpio.
+   - Medir backend/cache/fallback/cola durante movimiento real.
+   Resultado:
+   - JUEGO_DEBUG_NPC_AI=1 muestra un panel abajo a la derecha.
+   - npc_ai_telemetry_lines() permite probar el texto sin abrir OpenGL.
+   - draw_npc_ai_telemetry() no ejecuta IA, solo lee metricas.
+
+Opcion A34 - Si el siguiente paso es empezar supervivencia/crafteo
+   Stage36 C - MOCHILA Y RECOLECCION (HECHO)
+   Objetivo:
+   - Dar al jugador una mochila basica con capacidad limitada.
+   - Recoger piedra, madera y fibra por cercania.
+   - Preparar la base para crafteo posterior.
+   Resultado:
+   - Player usa inventario por cantidades y normaliza guardados viejos.
+   - main.py registra rocas, arboles y pasto por chunk.
+   - try_gather_basic_resource() recoge con cooldown por nodo.
+   - HUD muestra capacidad y recursos P/M/F.
+
+Opcion A35 - Si el siguiente paso es craftear armas ingame
+   Stage36 D - CRAFTING DE PALOS (HECHO)
+   Objetivo:
+   - Craftear Palo, Palo con fibras y Palo con piedra dentro del juego.
+   - Dar alcance, daño y usos al arma equipada.
+   - Conservar el arma en el guardado.
+   Resultado:
+   - C intenta craftear o mejorar el arma actual.
+   - Combat usa daño/alcance del arma.
+   - El arma pierde uso solo al acertar.
+   - HUD muestra arma, daño, alcance y durabilidad.
+
+Opcion A36 - Si el siguiente paso es ver armas crafteadas
+   Stage36 E - ARMAS BOXEL (HECHO)
+   Objetivo:
+   - Renderizar Palo, Palo con fibras y Palo con piedra como cubitos 3D.
+   - Usar draw_boxel() y BOXEL_UNIT para mantener escala.
+   - Mostrar el arma equipada en tercera persona.
+   Resultado:
+   - render_crafted_weapon() dibuja el arma por tipo.
+   - render_player_avatar() acepta held_weapon.
+   - main.py pasa player.weapon_key() al render.
+
+Opcion A37 - Si el siguiente paso es sentir el golpe
+   Stage36 F - GOLPE BOXEL (HECHO)
+   Objetivo:
+   - Animar brazo y arma al atacar.
+   - Usar la misma animacion con mano y con armas boxel.
+   - Evitar que el swing se reinicie cada frame al mantener clic.
+   Resultado:
+   - Player tiene temporizador de swing.
+   - render_player_avatar() acepta attack_swing.
+   - main.py dispara y actualiza la animacion de ataque.
+
+Opcion A38 - Si el siguiente paso es ver el arma en primera persona
+   Stage36 G - ARMA EN PRIMERA PERSONA (HECHO)
+   Objetivo:
+   - Mostrar el arma boxel tambien en primera persona.
+   - Reutilizar los modelos de armas crafteadas.
+   - Mantener el pulso de ataque en la vista de camara.
+   Resultado:
+   - render_first_person_weapon() dibuja el arma cerca de la camara.
+   - main.py la renderiza solo en primera persona.
+   - No cambia estadisticas ni crafteo.
+
+Opcion A39 - Si el siguiente paso es que el arma no flote
+   Stage36 H - MANO Y AGARRE BOXEL (HECHO)
+   Objetivo:
+   - Mostrar puño/antebrazo en primera persona.
+   - Hacer que el palo parezca agarrado.
+   - Mantener el swing de ataque con mano o arma.
+   Resultado:
+   - render_first_person_grip() dibuja mano y manga.
+   - render_first_person_weapon() dibuja mano aunque weapon_key sea mano.
+   - Con arma se agrega agarre y luego el modelo del palo.
+
+Opcion A40 - Si el siguiente paso es entender el crafteo sin menu
+   Stage36 I - RECETA ACTIVA HUD (HECHO)
+   Objetivo:
+   - Mostrar la receta activa en el HUD.
+   - Reutilizar la misma tabla para crafteo y texto.
+   - Enseñar materiales disponibles/requeridos.
+   Resultado:
+   - CRAFT_RECIPES define la progresion de palos.
+   - Player.next_craft_recipe() devuelve texto y estado.
+   - HUD muestra la receta en verde si alcanza y amarillo si falta.
+
+Opcion A41 - Si el siguiente paso es sentir la recoleccion
+   Stage36 J - NOTIFICACIONES DE RECOLECCION (HECHO)
+   Objetivo:
+   - Mostrar avisos breves al recoger piedra, madera o fibra.
+   - Avisar cuando la mochila esta llena.
+   - Mantener el HUD permanente limpio.
+   Resultado:
+   - Player guarda pickup_notices con tiempo de vida.
+   - draw_pickup_notices() muestra hasta 3 avisos.
+   - main.py actualiza y dibuja el feed compacto.
+
+Opcion A42 - Si el siguiente paso es estado visual de mochila
+   Stage36 K - ICONO DE MOCHILA (HECHO)
+   Objetivo:
+   - Agregar icono compacto junto al contador de mochila.
+   - Mostrar estado vacio, recolectando y lleno.
+   - Usar linea verde/naranja sin meter mas texto.
+   Resultado:
+   - draw_bag_status_icon() dibuja mochila 2D.
+   - Verde parpadea al recoger recursos.
+   - Naranja aparece al llenarse.
+
+   Stage36 L - LOGICA BARATA POR CELDAS (HECHO)
+   Objetivo:
+   - Reducir calculos caros mientras el jugador se mueve.
+   - Usar distancia al cuadrado cuando no hace falta precision visual.
+   - Mantener la misma escala boxel y la misma sensacion de juego.
+   Resultado:
+   - Recoleccion, seleccion cercana, interaccion, Z Target y combate filtran por distancia al cuadrado.
+   - Slimes evitan calcular distancia exacta cuando el jugador esta fuera de aggro.
+   - Sin cambios en mochila, recetas, armas ni render principal.
+
+   Stage36 M - INDICE DE RECURSOS POR CELDA (HECHO)
+   Objetivo:
+   - Evitar recorrer recursos de chunks completos al recoger.
+   - Reducir trabajo repetido al consultar altura sobre rocas.
+   - Mantener igual la sensacion de recoleccion automatica.
+   Resultado:
+   - Piedra, madera y fibra se indexan en celdas internas de 4 unidades.
+   - La recoleccion revisa solo celdas cercanas al jugador.
+   - Las rocas con colision vertical tienen indice por celda para get_total_height().
+   - La descarga de chunks limpia sus entradas del indice.
+
+   Stage36 N - IA LEJANA POR TANDAS (HECHO)
+   Objetivo:
+   - Reducir trabajo de NPCs y enemigos fuera de foco.
+   - Mantener respuesta inmediata en entidades cercanas, destacadas o fijadas.
+   - Evitar updates invisibles cada frame.
+   Resultado:
+   - NPCs cercanos actualizan cada frame; lejanos por intervalos.
+   - Enemigos cercanos, seleccionados o fijados actualizan cada frame; lejanos por tandas.
+   - El Admin Hub conserva updates completos para depuracion.
+
+   Stage36 O - CACHE DE ALTURA POR FRAME (HECHO)
+   Objetivo:
+   - Reducir consultas repetidas de altura al moverse.
+   - Reutilizar resultados dentro del mismo frame.
+   - Mantener fisica y escala del mundo sin cambios visibles.
+   Resultado:
+   - get_total_height() usa cache fino de 0.25 unidades.
+   - El cache se limpia al inicio de cada update.
+   - El cache se invalida cuando se cargan o descargan rocas de chunks.
+
+   Stage36 P - DETALLE POR DISTANCIA (HECHO)
+   Objetivo:
+   - Dibujar menos piezas en entidades lejanas.
+   - Mantener detalle completo cerca del jugador.
+   - Preparar LOD gradual para arboles, hierba y terreno.
+   Resultado:
+   - Slimes usan niveles full/mid/far segun distancia.
+   - NPCs lejanos usan silueta humanoide barata con color de profesion.
+   - NPCs a media distancia ocultan herramienta de espalda y rasgos finos.
+   - Restos de slime se ocultan antes que entidades importantes.
+   - Objetivos fijados o destacados fuerzan detalle completo.
+
+   Stage36 Q - HOJAS IMPOSTOR (HECHO)
+   Objetivo:
+   - Bajar la carga grafica de arboles.
+   - Probar copas pseudo 3D estilo consolas antiguas.
+   - Mantener troncos boxel y silueta reconocible.
+   Resultado:
+   - arbol_bosque, arbol_pantano y arbol_seco usan planos cruzados para la copa.
+   - Se conserva un nucleo pequeno para que la copa no parezca flotante.
+   - El pantano reduce musgo colgante.
+   - No cambia recoleccion de madera ni posicion de arboles.
+
+   Stage36 R - FPS HUD E IMPOSTORES BAJOS (HECHO)
+   Objetivo:
+   - Mostrar FPS sin abrir F1.
+   - Usar impostores tambien en arbustos, flores y hongos.
+   - Bajar geometria de decoracion pequena.
+   Resultado:
+   - draw_fps_counter() muestra FPS siempre en HUD.
+   - Hongos, flores y arbustos usan planos cruzados.
+   - Los chunks LOD lejanos siguen sin decoracion; el chunk detallado usa decoracion barata.
+
+   Stage36 S - PRESETS GRAFICOS (HECHO)
+   Objetivo:
+   - Probar rendimiento sin editar codigo.
+   - Tener modo bajo, balanceado y alto detalle.
+   - Dejar OpenGL estable como ruta jugable principal.
+   Resultado:
+   - JUEGO_GRAPHICS_PRESET permite low, balanced y high.
+   - Los presets ajustan subdivision, LOD, distancia de entidades y restos.
+   - El HUD muestra Graf: LOW/BALANCED/HIGH.
+   - El contador FPS queda visible abajo a la derecha.
+   - Se agregan lanzadores OpenGL bajo FPS y OpenGL alto detalle.
+
+   Stage36 T - CALIDAD ADAPTATIVA (HECHO)
+   Objetivo:
+   - Suavizar bajones de FPS en movimiento.
+   - Bajar detalle lejano automaticamente cuando el promedio cae.
+   - Recuperar calidad poco a poco cuando el juego vuelve a ir fluido.
+   Resultado:
+   - JUEGO_ADAPTIVE_QUALITY queda activo por defecto.
+   - Se reduce distancia de entidades, etiquetas, detalle medio/fino y restos segun FPS.
+   - El HUD muestra Auto OK/AHORR/RECUP junto al contador FPS.
+   - F1 muestra escala adaptativa y FPS promedio.
+   - No se cambia OpenGL estable ni se toca Vulkan como ruta principal.
+
+   Stage36 U - HORIZONTE ADAPTATIVO (HECHO)
+   Objetivo:
+   - Reducir chunks lejanos dibujados cuando baja FPS.
+   - Acercar niebla para ocultar el recorte del horizonte.
+   - Mantener chunks cargados para no provocar tirones de descarga/regeneracion.
+   Resultado:
+   - JUEGO_ADAPTIVE_CHUNKS queda activo por defecto.
+   - La distancia de render de chunks baja con la escala adaptativa.
+   - La niebla se ajusta al horizonte efectivo.
+   - F1 muestra distancia de chunk y fog usados en el frame.
+
+   Stage36 V - STREAMING ADAPTATIVO (HECHO)
+   Objetivo:
+   - Reducir trabajo de administracion de chunks cuando baja FPS.
+   - Evitar que el streaming compita demasiado con movimiento y render.
+   - Mantener respuesta inmediata al cruzar a otro chunk.
+   Resultado:
+   - JUEGO_ADAPTIVE_STREAMING queda activo por defecto.
+   - El intervalo de gestion de chunks sube cuando baja la escala adaptativa.
+   - Al cruzar de chunk, la gestion se fuerza de inmediato.
+   - El limite de LOD por tanda baja a 1 en modo ahorro.
+   - F1 muestra intervalo de streaming, limite LOD y fuerza de actualizacion.
+
+   Stage36 W - DENSIDAD POR PRESET (HECHO)
+   Objetivo:
+   - Generar chunks nuevos mas livianos en modo bajo.
+   - Mantener balanced como punto normal.
+   - Permitir high con mas decoracion visual.
+   Resultado:
+   - El generador lee JUEGO_GRAPHICS_PRESET para ajustar densidad.
+   - low reduce hierba, rocas, decoracion y arboles de oasis.
+   - Se agrega JUEGO_WORLD_DETAIL_PRESET para forzar densidad sin cambiar otros graficos.
+   - Se agregan overrides de densidad para pruebas finas.
+
+   Stage36 X - GEOMETRIA POR PRESET (HECHO)
+   Objetivo:
+   - Reducir vertices por pieza en modo bajo.
+   - Mantener balanced/high con siluetas mas completas.
+   - Bajar costo de plantas pequenas y copas impostor.
+   Resultado:
+   - low usa 1 plano para hierba y decoracion pequena.
+   - low usa 2 planos para copas impostor de arbol.
+   - balanced/high conservan planos cruzados.
+   - Se agregan overrides JUEGO_GRASS_PLANES, JUEGO_DECO_PLANES y JUEGO_LEAF_PLANES.
+
+   Stage36 Y - ARBOLES POR PRESET (HECHO)
+   Objetivo:
+   - Reducir costo visual de arboles en modo bajo.
+   - Mantener siluetas completas en balanced/high.
+   - No tocar recoleccion ni posicion de arboles.
+   Resultado:
+   - low usa 1 capa de arbol.
+   - low omite sombra plana, copa secundaria y musgo extra.
+   - balanced/high mantienen capas actuales.
+   - Se agrega override JUEGO_TREE_LAYERS.
+
+   Stage36 Z - ROCAS POR PRESET (HECHO)
+   Objetivo:
+   - Reducir costo de rocas en modo bajo.
+   - Mantener rocas irregulares en balanced/high.
+   - No tocar colisiones ni recoleccion de piedra.
+   Resultado:
+   - low usa rocks_simple con cajas directas.
+   - balanced/high conservan lados irregulares y tapas trianguladas.
+   - Se agrega override JUEGO_ROCK_DETAIL.
+
+   Stage37 A - RECURSOS POR PRESET (HECHO)
+   Objetivo:
+   - Evitar que el modo bajo castigue la recoleccion.
+   - Separar optimizacion visual de economia basica.
+   - Mantener crafting temprano viable con menos piezas visibles.
+   Resultado:
+   - Los nodos de fibra, madera y piedra compensan cantidad segun densidad visual.
+   - low puede dar mas recurso por nodo recolectable.
+   - balanced/high mantienen cantidades normales.
+   - No cambia mochila, recetas, colisiones ni escala boxel.
+
+   Stage37 B - TELEMETRIA DE PRESET (HECHO)
+   Objetivo:
+   - Verificar en F1 que preset de mundo esta activo.
+   - Confirmar densidad visual y geometria por preset.
+   - Ver cuanto recurso da cada nodo tras la compensacion.
+   Resultado:
+   - F1 muestra WorldPreset.
+   - F1 muestra densidad de grass/deco/rock.
+   - F1 muestra planos de hierba, decoracion, hojas, arboles y rocas.
+   - F1 muestra recursos por nodo F/M/P.
+
+   Stage37 C - LOG DE PRESETS (HECHO)
+   Objetivo:
+   - Guardar muestras compactas de rendimiento por preset.
+   - Comparar low/balanced/high con datos.
+   - Tener informacion lista si hay bajones al moverse.
+   Resultado:
+   - Se crea logs/preset_runtime_samples.log.
+   - Cada muestra guarda FPS, preset, escala adaptativa, chunks, entidades, vertices y densidad.
+   - El log se escribe cada 3 segundos por defecto.
+   - Se puede apagar con JUEGO_PRESET_SAMPLE_LOG=0.
+
+   Stage37 D - ANALIZADOR DE PRESETS (HECHO)
+   Objetivo:
+   - Leer logs/preset_runtime_samples.log sin revisar lineas a mano.
+   - Comparar low/balanced/high por FPS, caidas y carga renderizada.
+   - Recomendar un candidato segun muestras reales.
+   Resultado:
+   - Se agrega motor_juegos/preset_runtime_log_analyzer.py.
+   - Se agrega ANALIZAR_PRESETS_GRAFICOS.bat.
+   - El analizador resume FPS promedio, FPS minimo, escala adaptativa, vertices, uploads y streaming.
+   - Si faltan muestras, lo indica sin romper.
+
+   Stage37 E - SESIONES DE PRESET (HECHO)
+   Objetivo:
+   - Evitar mezclar pruebas viejas con pruebas nuevas.
+   - Marcar cada arranque del juego con una sesion.
+   - Poder limpiar el log antes de comparar presets.
+   Resultado:
+   - Cada muestra incluye session.
+   - Al iniciar partida se escribe event=session_start.
+   - El analizador reporta sesiones y ultima sesion.
+   - Se agrega LIMPIAR_LOG_PRESETS_GRAFICOS.bat.
+
+   Stage37 F - ANALISIS POR SESION (HECHO)
+   Objetivo:
+   - Comparar presets sin mezclar datos viejos.
+   - Permitir analizar todo el historial o solo la ultima sesion.
+   - Mantener el flujo simple con archivos .bat.
+   Resultado:
+   - El analizador acepta JUEGO_PRESET_ANALYZE_SESSION=all/latest/id.
+   - ANALIZAR_PRESETS_GRAFICOS.bat analiza todo el log.
+   - Se agrega ANALIZAR_PRESETS_ULTIMA_SESION.bat.
+   - El resultado muestra latest_session y analyzed_session.
+
+   Stage37 G - SESIONES NOMBRADAS (HECHO)
+   Objetivo:
+   - Hacer mas facil comparar low, balanced y high.
+   - Evitar adivinar de que lanzador salio cada corrida.
+   - Mantener OpenGL estable como ruta jugable principal.
+   Resultado:
+   - LANZAR_OPENGL_BAJO_FPS.bat etiqueta sesiones como opengl_low_XXXX.
+   - LANZAR_OPENGL.bat etiqueta sesiones como opengl_balanced_XXXX.
+   - LANZAR_OPENGL_ALTO_DETALLE.bat etiqueta sesiones como opengl_high_XXXX.
+   - Los tres lanzadores activan el log de preset y usan py para arrancar.
+
+   Stage37 H - MENU DE PRESETS (HECHO)
+   Objetivo:
+   - Reducir pasos manuales al comparar rendimiento.
+   - Tener un solo archivo para limpiar log, probar presets y analizar resultados.
+   - Mantener OpenGL estable como camino jugable principal.
+   Resultado:
+   - Se agrega PROBAR_PRESETS_OPENGL.bat.
+   - El menu permite limpiar el log de presets.
+   - El menu puede abrir low, balanced y high con sesiones nombradas.
+   - El menu puede analizar todo el historial o solo la ultima sesion.
+
+   Stage37 I - REPORTE DE PRESETS (HECHO)
+   Objetivo:
+   - Guardar el resultado del analisis en un archivo facil de revisar.
+   - Evitar perder la recomendacion al cerrar la consola.
+   - Mantener la comparacion de low, balanced y high simple.
+   Resultado:
+   - El analizador crea logs/preset_runtime_report.txt.
+   - El reporte incluye estado, sesiones, mejor candidato y recomendacion.
+   - El reporte incluye tabla por preset con FPS, escala, vertices, uploads y streaming.
+   - Si no hay muestras, el reporte explica el flujo recomendado.
+
+   Stage37 J - LECTOR DE REPORTE (HECHO)
+   Objetivo:
+   - Ver el ultimo reporte desde el menu de presets.
+   - Evitar buscar manualmente el archivo en logs.
+   - Hacer mas comodo repetir pruebas de low, balanced y high.
+   Resultado:
+   - PROBAR_PRESETS_OPENGL.bat agrega la opcion 7.
+   - La opcion 7 muestra logs/preset_runtime_report.txt si existe.
+   - Si aun no hay reporte, el menu indica que primero hay que analizar.
+
+   Stage37 K - OPENGL RECOMENDADO (HECHO)
+   Objetivo:
+   - Usar el resultado del analisis para arrancar con el preset recomendado.
+   - Mantener balanced como respaldo si faltan muestras.
+   - Evitar convertir una prueba incompleta en decision permanente.
+   Resultado:
+   - El analizador crea logs/recommended_graphics_preset.txt.
+   - Si la comparacion tiene suficientes muestras, guarda low, balanced o high.
+   - Si faltan muestras, guarda balanced con confianza baja.
+   - Se agrega LANZAR_OPENGL_RECOMENDADO.bat.
+   - PROBAR_PRESETS_OPENGL.bat agrega la opcion 8.
+
+   Stage37 L - COMPARACION JUSTA (HECHO)
+   Objetivo:
+   - Evitar que una prueba incompleta elija ganador.
+   - Exigir datos suficientes de low, balanced y high.
+   - Mantener balanced como respaldo mientras falten presets.
+   Resultado:
+   - El analizador pide al menos 4 muestras por preset.
+   - El reporte muestra presets listos y presets faltantes.
+   - El mejor candidato puede aparecer como parcial.
+   - LANZAR_OPENGL_RECOMENDADO.bat solo usa el ganador con confianza alta.
+   - Si faltan presets, el recomendado sigue siendo balanced.
+
+   Stage37 M - RECOMENDADO REFRESCADO (HECHO)
+   Objetivo:
+   - Evitar que LANZAR_OPENGL_RECOMENDADO.bat use una recomendacion vieja.
+   - Recalcular el analisis justo antes de arrancar.
+   - Avisar cuando la confianza sigue baja.
+   Resultado:
+   - LANZAR_OPENGL_RECOMENDADO.bat ejecuta el analizador antes de leer recommended_graphics_preset.txt.
+   - Si faltan pruebas completas, muestra una advertencia.
+   - Si la confianza es baja, el preset usado sigue siendo balanced.
+   - Si la confianza es alta, usa el ganador del analisis actualizado.
+
+   Stage37 N - CONSULTA RECOMENDADA (HECHO)
+   Objetivo:
+   - Ver el preset recomendado sin abrir el juego.
+   - Refrescar el analisis antes de mostrar la recomendacion.
+   - Revisar confianza y presets faltantes rapidamente.
+   Resultado:
+   - Se agrega VER_PRESET_RECOMENDADO.bat.
+   - PROBAR_PRESETS_OPENGL.bat agrega la opcion 9.
+   - La consulta actualiza recommended_graphics_preset.txt.
+   - La consulta muestra el archivo recomendado y deja la ruta del reporte completo.
+
+   Stage37 O - LIMPIEZA VISIBLE (HECHO)
+   Objetivo:
+   - Reducir saturacion en la raiz del proyecto.
+   - Archivar rutas experimentales viejas sin borrar informacion.
+   - Mantener visibles solo lanzadores actuales y diagnosticos utiles.
+   Resultado:
+   - Se archivan lanzadores viejos de fast_noise, bridge experimental y accesos rapidos antiguos.
+   - Se mueven README_STAGE acumulados a ARCHIVO_ETAPAS\limpieza_stage37_o\readmes_raiz.
+   - Se archivan respawn_debug.log y stage35_l_save_test.
+   - Los diagnosticos vigentes de movimiento/terreno usan py en lugar de python.
+   - No se elimina codigo interno de Vulkan ni de fast_noise.
+
+   Stage37 P - AGUA A RAS (HECHO)
+   Objetivo:
+   - Corregir agua que se veia demasiado alta sobre el suelo.
+   - Mantener la lamina de agua pegada al terreno local.
+   - Aplicar el ajuste tambien a consultas de jugador/NPC y LOD.
+   Resultado:
+   - El agua detallada usa la altura del terreno visual de la celda.
+   - El agua LOD usa el mismo ajuste.
+   - get_water_surface_at() devuelve el nivel ajustado al suelo cacheado.
+   - get_world_context_at() reporta profundidad visual coherente.
+   - main.py pasa CHUNK_SIZE/SUBDIVISIONES reales a las consultas de agua.
+   - El margen por defecto queda en 0.018 sobre el suelo para evitar parpadeo.
+
+   Stage37 Q - PYTHON SEGURO (HECHO)
+   Objetivo:
+   - Evitar que los lanzadores usen un Python sin dependencias.
+   - Detectar numpy/pygame antes de abrir el juego.
+   - Mostrar un error claro si falta el entorno correcto.
+   Resultado:
+   - Se agrega SELECCIONAR_PYTHON_JUEGO.bat.
+   - Los lanzadores OpenGL principales usan el selector.
+   - El menu de presets usa el selector al abrir low/balanced/high.
+   - El log de movimiento estable usa el selector.
+   - PREVISUALIZAR_TERRENO.bat usa el selector con numpy/PIL.
+
+   Stage37 R - ENTORNO VERIFICABLE (HECHO)
+   Objetivo:
+   - Comprobar el entorno antes de abrir el juego.
+   - Saber si hay Python con numpy/pygame para jugar.
+   - Saber si hay Python con numpy/PIL para previews.
+   Resultado:
+   - Se agrega VERIFICAR_ENTORNO_JUEGO.bat.
+   - PROBAR_PRESETS_OPENGL.bat agrega la opcion 10.
+   - La verificacion muestra que Python se usara para juego y previews.
+   - Si falta Python valido, muestra como forzar JUEGO_PYTHON.
+
+   Stage37 S - DEPENDENCIAS CLARAS (HECHO)
+   Objetivo:
+   - Dejar claro que paquetes necesita el juego.
+   - Mostrar el comando de instalacion sin ejecutar nada automaticamente.
+   - Conectar la ayuda desde el menu de presets.
+   Resultado:
+   - Se agrega requirements_juego.txt.
+   - Se agrega MOSTRAR_COMANDO_DEPENDENCIAS.bat.
+   - VERIFICAR_ENTORNO_JUEGO.bat sugiere la ayuda si falta Python valido.
+   - PROBAR_PRESETS_OPENGL.bat agrega la opcion 11.
+   - setup.cfg incluye Pillow para herramientas de preview.
+
+   Stage37 T - INSTALADOR OPCIONAL (HECHO)
+   Objetivo:
+   - Facilitar la instalacion de dependencias cuando falten.
+   - Evitar instalaciones accidentales.
+   - Conectar instalacion, verificacion y menu de presets.
+   Resultado:
+   - Se agrega INSTALAR_DEPENDENCIAS_JUEGO.bat.
+   - El instalador muestra paquetes y pide escribir SI antes de instalar.
+   - MOSTRAR_COMANDO_DEPENDENCIAS.bat menciona el instalador opcional.
+   - VERIFICAR_ENTORNO_JUEGO.bat sugiere el instalador si falta Python valido.
+   - PROBAR_PRESETS_OPENGL.bat agrega la opcion 12.
+
+   Stage37 U - INSTALADOR DIRIGIDO (HECHO)
+   Objetivo:
+   - Evitar instalar dependencias en el Python equivocado.
+   - Respetar JUEGO_PYTHON cuando se define una ruta fija.
+   - Mostrar el Python destino y el comando antes de instalar.
+   Resultado:
+   - INSTALAR_DEPENDENCIAS_JUEGO.bat usa JUEGO_PYTHON si existe.
+   - Si JUEGO_PYTHON no existe, usa py como respaldo.
+   - El instalador muestra sys.executable del destino.
+   - El instalador muestra el comando pip exacto antes de pedir SI.
+   - MOSTRAR_COMANDO_DEPENDENCIAS.bat explica el flujo con JUEGO_PYTHON.
+
+   Stage37 V - PYTHON RECORDADO (HECHO)
+   Objetivo:
+   - Evitar escribir JUEGO_PYTHON cada vez.
+   - Guardar una ruta local para los lanzadores.
+   - Mantener el selector automatico como respaldo.
+   Resultado:
+   - Se agrega CONFIGURAR_PYTHON_JUEGO.bat.
+   - El asistente valida numpy y pygame antes de guardar.
+   - Si valida, crea JUEGO_PYTHON_LOCAL.bat.
+   - SELECCIONAR_PYTHON_JUEGO.bat lee JUEGO_PYTHON_LOCAL.bat automaticamente.
+   - PROBAR_PRESETS_OPENGL.bat agrega la opcion 13.
+
+   Stage37 W - PYTHON ADMINISTRABLE (HECHO)
+   Objetivo:
+   - Ver si existe una ruta local de Python guardada.
+   - Probar si esa ruta sigue funcionando.
+   - Borrar la ruta guardada si quedo mal.
+   Resultado:
+   - Se agrega ADMINISTRAR_PYTHON_JUEGO.bat.
+   - El administrador muestra la ruta guardada si existe.
+   - Permite probar numpy/pygame con esa ruta.
+   - Permite borrar JUEGO_PYTHON_LOCAL.bat escribiendo BORRAR.
+   - PROBAR_PRESETS_OPENGL.bat agrega la opcion 14.
+   - VERIFICAR_ENTORNO_JUEGO.bat indica si hay Python local guardado.
+
+   Stage37 X - CONFIG LOCAL PRIVADA (HECHO)
+   Objetivo:
+   - Evitar que rutas locales de Python entren al proyecto compartido.
+   - Mantener logs y previews como salidas temporales.
+   - Proteger configuraciones propias de cada PC.
+   Resultado:
+   - .gitignore ignora JUEGO_PYTHON_LOCAL.bat.
+   - .gitignore ignora juego3d_v1_5/logs/.
+   - .gitignore ignora juego3d_v1_5/previews/.
+   - No se borra ningun archivo existente.
+
+   Stage37 Y - MENU PRINCIPAL (HECHO)
+   Objetivo:
+   - Tener una entrada unica para el proyecto.
+   - Evitar recordar muchos nombres de .bat.
+   - Separar acciones comunes de menus especializados.
+   Resultado:
+   - Se agrega INICIO_JUEGO.bat.
+   - Permite abrir OpenGL estable y OpenGL recomendado.
+   - Permite verificar entorno Python.
+   - Permite entrar al menu de presets.
+   - Permite ver/instalar dependencias.
+   - Permite configurar o administrar Python guardado.
+   - Permite abrir preview de terreno y log de movimiento.
+
+   Stage37 Z - LEEME PRIMERO (HECHO)
+   Objetivo:
+   - Dejar una guia corta visible en la raiz.
+   - Indicar que INICIO_JUEGO.bat es la entrada recomendada.
+   - Evitar confusion con Python, Vulkan, presets y logs.
+   Resultado:
+   - Se agrega LEEME_PRIMERO.txt.
+   - La guia resume como jugar, verificar entorno y comparar presets.
+   - La guia recuerda que OpenGL estable sigue siendo la ruta principal.
+   - La guia recuerda que Vulkan sigue experimental.
+   - La guia aclara que no hace falta crear ZIP para continuar.
+
+   Stage38 A - LIMPIEZA INTERNA VISIBLE (HECHO)
+   Objetivo:
+   - Reducir saturacion dentro de juego3d_v1_5.
+   - Quitar accesos antiguos de Vulkan, bridge, ruido y playtest de la vista principal.
+   - Archivar documentacion e imagenes debug internas sin borrar informacion.
+   Resultado:
+   - Se archivan 63 archivos .bat internos.
+   - Se archivan 23 README internos.
+   - Se archivan 5 imagenes debug_head*.png.
+   - No se mueve main.py, scripts .py, motor_juegos, assets, sonidos ni texturas.
+   - OpenGL estable sigue siendo la ruta principal.
+
+   Stage38 B - ESTRUCTURA VERIFICABLE (HECHO)
+   Objetivo:
+   - Confirmar que la limpieza no escondio piezas importantes.
+   - Revisar archivos y carpetas clave desde un .bat.
+   - Conectar esa verificacion al menu principal.
+   Resultado:
+   - Se agrega VERIFICAR_ESTRUCTURA_JUEGO.bat.
+   - INICIO_JUEGO.bat agrega la opcion 11.
+   - El verificador revisa launchers, LEEME, requirements, main.py, motor_juegos, assets y ARCHIVO_ETAPAS.
+   - Si falta algo, lo marca como FALTA y devuelve codigo de error.
+
+   Stage38 C - ESTADO RAPIDO (HECHO)
+   Objetivo:
+   - Tener una lectura rapida del estado del proyecto antes de jugar.
+   - Unir estructura, Python y preset recomendado en un solo reporte.
+   - Guardar el resultado para revisarlo sin abrir el juego.
+   Resultado:
+   - Se agrega ESTADO_RAPIDO_JUEGO.bat.
+   - INICIO_JUEGO.bat agrega la opcion 12.
+   - El reporte queda en juego3d_v1_5\logs\estado_rapido_juego.txt.
+   - El reporte revisa piezas principales, Python de juego, Python de previews y preset grafico recomendado.
+
+   Stage38 D - SIGUIENTE PASO (HECHO)
+   Objetivo:
+   - Evitar que el reporte rapido sea solo una lista tecnica.
+   - Mostrar una prioridad clara para continuar.
+   - Separar problemas que impiden jugar de tareas de comparacion o herramientas.
+   Resultado:
+   - ESTADO_RAPIDO_JUEGO.bat agrega la seccion SIGUIENTE PASO.
+   - Si falta Python para juego, manda primero a opciones 6 o 7 del menu.
+   - Si el preset tiene confianza baja, indica que presets faltan por probar.
+   - Si todo esta listo, recomienda jugar con OpenGL estable o recomendado.
+
+   Stage38 E - RECETA DE REPARACION (HECHO)
+   Objetivo:
+   - Hacer mas accionable el estado rapido cuando faltan dependencias.
+   - Mostrar un comando manual listo para instalar requirements_juego.txt.
+   - Pedir repetir el estado rapido despues de reparar.
+   Resultado:
+   - ESTADO_RAPIDO_JUEGO.bat muestra comando sugerido si falla Python de juego.
+   - Tambien lo muestra si fallan dependencias para previews.
+   - No instala nada automaticamente.
+
+   Stage38 F - INSTALADOR CONSISTENTE (HECHO)
+   Objetivo:
+   - Hacer que el instalador respete la ruta local de Python si existe.
+   - Evitar diferencias entre configurar Python, instalar dependencias y verificar estado.
+   - Mostrar el origen del Python destino antes de instalar.
+   Resultado:
+   - INSTALAR_DEPENDENCIAS_JUEGO.bat carga JUEGO_PYTHON_LOCAL.bat si existe.
+   - El instalador muestra si usa py, JUEGO_PYTHON o JUEGO_PYTHON_LOCAL.bat.
+   - MOSTRAR_COMANDO_DEPENDENCIAS.bat y ESTADO_RAPIDO_JUEGO.bat aclaran que la opcion 6 usa la ruta guardada.
+
+   Stage38 G - DIAGNOSTICO PYTHON (HECHO)
+   Objetivo:
+   - Ver que paquete falta en cada Python candidato.
+   - Evitar adivinar si falta numpy, pygame, PyOpenGL o Pillow.
+   - Mantener el menu principal limpio usando la opcion 3 existente.
+   Resultado:
+   - VERIFICAR_ENTORNO_JUEGO.bat agrega diagnostico detallado cuando falla Python de juego.
+   - El diagnostico prueba la ruta guardada, JUEGO_PYTHON, python, py, rutas comunes y Python Codex preview.
+   - ESTADO_RAPIDO_JUEGO.bat recomienda usar la opcion 3 para ver detalle.
+
+   Stage38 H - REQUISITO OPENGL (HECHO)
+   Objetivo:
+   - No aceptar un Python que tenga pygame pero no PyOpenGL.
+   - Alinear el requisito de juego con requirements_juego.txt.
+   - Mantener previews con requisito mas ligero.
+   Resultado:
+   - SELECCIONAR_PYTHON_JUEGO.bat exige numpy, pygame y PyOpenGL por defecto.
+   - VERIFICAR_ENTORNO_JUEGO.bat y ESTADO_RAPIDO_JUEGO.bat reportan PyOpenGL como requisito de juego.
+   - CONFIGURAR_PYTHON_JUEGO.bat y ADMINISTRAR_PYTHON_JUEGO.bat validan PyOpenGL.
+   - ESTADO_RAPIDO_JUEGO.bat usa checks directos para evitar avisos internos de etiquetas batch.
+   - ADMINISTRAR_PYTHON_JUEGO.bat sale correctamente si recibe entrada vacia.
+
+   Stage38 I - PYTHON DE REPARACION (HECHO)
+   Objetivo:
+   - Evitar instalar dependencias en un Python menos conveniente.
+   - Elegir el candidato ejecutable con mas paquetes del juego ya presentes.
+   - Mostrar paquetes faltantes antes de pedir confirmacion.
+   Resultado:
+   - INSTALAR_DEPENDENCIAS_JUEGO.bat puntua python, py, rutas comunes y Python Codex preview.
+   - Si no hay ruta local ni JUEGO_PYTHON, elige el mejor candidato.
+   - El instalador muestra origen y paquetes faltantes antes de pedir SI.
+   - No instala nada automaticamente.
+
+   Stage38 J - VERIFICACION POST-INSTALACION (HECHO)
+   Objetivo:
+   - Confirmar que el Python destino quede listo despues de instalar.
+   - Revisar numpy, pygame y PyOpenGL en el mismo Python reparado.
+   - Evitar depender solo de la verificacion general.
+   Resultado:
+   - INSTALAR_DEPENDENCIAS_JUEGO.bat verifica el Python destino despues de instalar.
+   - Si falla, recomienda opcion 3 para diagnostico detallado.
+   - Si pasa, muestra que el Python destino esta listo para jugar.
+   - No instala nada automaticamente sin confirmar SI.
+
+   Stage38 K - GUARDAR PYTHON REPARADO (HECHO)
+   Objetivo:
+   - Guardar la ruta del Python reparado solo despues de verificarlo.
+   - Evitar buscar Python otra vez en futuros lanzadores.
+   - Mantener la decision bajo confirmacion del usuario.
+   Resultado:
+   - INSTALAR_DEPENDENCIAS_JUEGO.bat pregunta por GUARDAR despues de verificar el Python destino.
+   - Si se confirma, crea JUEGO_PYTHON_LOCAL.bat.
+   - Si no se confirma, no guarda nada y sugiere opcion 7 para despues.
+   - No instala ni guarda nada automaticamente durante pruebas canceladas.
+
+   Stage38 L - SELECTOR DE REPARACION (HECHO)
+   Objetivo:
+   - Reutilizar la eleccion inteligente de Python en varios scripts.
+   - Mostrar en estado rapido el comando exacto que usaria la opcion 6.
+   - Reducir duplicacion en el instalador.
+   Resultado:
+   - Se agrega SELECCIONAR_PYTHON_REPARACION.bat.
+   - INSTALAR_DEPENDENCIAS_JUEGO.bat usa el selector.
+   - ESTADO_RAPIDO_JUEGO.bat muestra comando elegido por opcion 6, origen y paquetes faltantes.
+   - No instala nada automaticamente.
+
+Opcion B - Si el problema principal es visual/terreno
+   Stage34 C - AGUA DE MESETA NATURAL
+   Objetivo:
+   - Hacer que riachuelos sean mas visibles cerca de mesetas con arboles.
+   - Evitar inundar el mapa.
+   - Mejorar transiciones entre lagos, orillas y altura.
+
+Opcion C - Si OpenGL ya se siente estable
+   Stage34 C - VULKAN PUENTE SIGUIENTE
+   Objetivo:
+   - Retomar Vulkan como laboratorio.
+   - No reemplazar OpenGL.
+   - Preparar siguiente probe solo despues de tener FPS estables.
+
+Recomendacion actual:
+- Leer LEEME_PRIMERO.txt si se abre la carpeta desde cero.
+- Usar INICIO_JUEGO.bat como entrada principal.
+- Usar la opcion 12 de INICIO_JUEGO.bat para ver el estado rapido antes de una sesion larga.
+- Leer la seccion SIGUIENTE PASO del estado rapido antes de decidir si jugar, instalar dependencias o probar presets.
+- Si la opcion 12 muestra un comando manual sugerido, usarlo solo cuando quieras reparar dependencias.
+- Usar la opcion 11 de INICIO_JUEGO.bat si se quiere comprobar que la estructura esta completa.
+- Ejecutar VERIFICAR_ENTORNO_JUEGO.bat si un lanzador no abre o antes de una sesion larga.
+- Si la verificacion falla, leer DIAGNOSTICO DETALLADO para ver que paquete falta por Python.
+- Si un lanzador dice que no encontro Python valido, definir JUEGO_PYTHON con la ruta del Python que tenga numpy, pygame y PyOpenGL.
+- Para guardar esa ruta de forma local, ejecutar CONFIGURAR_PYTHON_JUEGO.bat.
+- Para revisar o borrar la ruta guardada, ejecutar ADMINISTRAR_PYTHON_JUEGO.bat.
+- JUEGO_PYTHON_LOCAL.bat es configuracion privada y queda ignorada por el proyecto.
+- Si faltan dependencias, ejecutar MOSTRAR_COMANDO_DEPENDENCIAS.bat para ver el comando de instalacion.
+- Si quieres instalarlas desde un asistente, definir JUEGO_PYTHON si hace falta, ejecutar INSTALAR_DEPENDENCIAS_JUEGO.bat y confirmar con SI.
+- Si ya guardaste una ruta con CONFIGURAR_PYTHON_JUEGO.bat, el instalador la usara automaticamente.
+- Si no hay ruta guardada, el instalador elegira el Python que ya tenga mas paquetes listos.
+- Despues de instalar, el instalador comprobara ese mismo Python con numpy, pygame y PyOpenGL.
+- Si el Python queda listo, el instalador podra guardar esa ruta con GUARDAR.
+- La opcion 12 muestra el comando exacto que usaria la opcion 6 para reparar dependencias.
+- Ejecutar PROBAR_PRESETS_OPENGL.bat para limpiar, probar low/balanced/high y analizar resultados.
+- Caminar 1-2 minutos por preset en movimiento real, cruzando chunks si puedes.
+- Elegir el preset base segun ANALIZAR_PRESETS_GRAFICOS.bat o la opcion 5 del menu.
+- Revisar el reporte con la opcion 7 del menu o en juego3d_v1_5\logs\preset_runtime_report.txt.
+- Probar el ganador con la opcion 8 del menu; esa opcion refresca el analisis antes de arrancar.
+- Ver el recomendado sin abrir juego con la opcion 9 del menu.
+- Revisar visualmente lagos/orillas: el agua ya no deberia flotar metros sobre el terreno.
+- Matar algunos slimes y confirmar que el charco queda visible sobre el suelo.
+- Si sigue bajando mucho FPS, ejecutar ANALIZAR_PERF_MOVIMIENTO.bat despues de un log.
+- Siguiente frente probable: ajustar valores segun el resultado de presets o correr nuevo log y revisar world_context, player_move, ai, chunk_lod y chunk_compile.
+
+Regla importante:
+- No hacer ZIP salvo que se pida.
+- No cambiar el default a fast_noise.
+- No decir que Vulkan ya es el render principal.
+- OpenGL estable sigue siendo el camino jugable.

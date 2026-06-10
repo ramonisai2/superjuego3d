@@ -1,0 +1,55 @@
+{
+  "version": "stage35_l_save_world_memory",
+  "seed": 123,
+  "x": 1.0,
+  "y": 2.0,
+  "z": 3.0,
+  "yaw": -90.0,
+  "pitch": 0.0,
+  "camera_mode": "third",
+  "third_person_distance": 5.5,
+  "health": 100.0,
+  "hunger": 90.0,
+  "stamina": 80.0,
+  "inventory": {
+    "wood": 2
+  },
+  "npc_memory": {
+    "version": "stage35_l_npc_memory_v1",
+    "records": [
+      {
+        "id": "npc_save_03e0abc608bb",
+        "canonical": {
+          "name": "Runia",
+          "title": "El Ocupado",
+          "profession": "curandero",
+          "identity": "7c9de474dbe0",
+          "seed": 444,
+          "hostility": 39,
+          "damage": 8,
+          "tool": "staff",
+          "tool_label": "baston",
+          "temper": "sereno",
+          "skin_preset": "prof_curandero"
+        },
+        "encounters": 1,
+        "trust": 1.5,
+        "last_need": "calm",
+        "last_intent": "wander",
+        "last_position": [
+          1.0,
+          2.0
+        ],
+        "notes": [
+          {
+            "event": "interaction",
+            "need": "calm",
+            "intent": "wander",
+            "detail": "por ahora estoy tranquilo"
+          }
+        ]
+      }
+    ]
+  },
+  "saved_at": "2026-06-05 07:41:09"
+}

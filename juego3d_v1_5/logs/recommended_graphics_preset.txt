@@ -1,0 +1,7 @@
+preset=balanced
+confidence=low
+samples=71
+best_preset=balanced
+ready_presets=balanced,high
+missing_presets=low
+reason=Mejor candidato parcial: balanced. Faltan muestras suficientes de: low.

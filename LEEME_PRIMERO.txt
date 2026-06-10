@@ -1,0 +1,28 @@
+JUEGO 1.6 - LEEME PRIMERO
+
+Entrada recomendada:
+- INICIO_JUEGO.bat
+
+Desde ahi puedes:
+- Jugar en OpenGL estable.
+- Probar el preset recomendado.
+- Verificar Python y dependencias.
+- Comparar LOW / BALANCED / HIGH.
+- Previsualizar terreno.
+- Generar log de movimiento si hay bajones de FPS.
+
+Si el juego no abre:
+1. Ejecuta VERIFICAR_ENTORNO_JUEGO.bat.
+2. Si falta Python valido, ejecuta MOSTRAR_COMANDO_DEPENDENCIAS.bat.
+3. Si ya tienes Python en otra ruta, ejecuta CONFIGURAR_PYTHON_JUEGO.bat.
+4. Si guardaste una ruta mala, usa ADMINISTRAR_PYTHON_JUEGO.bat.
+
+Ruta estable:
+- OpenGL estable sigue siendo el modo principal.
+- Vulkan sigue experimental y no debe usarse como modo normal.
+- El terreno default sigue siendo current.
+
+Notas:
+- No hace falta crear ZIP para seguir trabajando.
+- JUEGO_PYTHON_LOCAL.bat es configuracion privada de esta PC.
+- Los logs y previews son salidas temporales.

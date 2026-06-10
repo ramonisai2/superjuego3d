@@ -1,0 +1,26 @@
+JUEGO 1.6 - REPORTE DE PRESETS GRAFICOS
+
+Estado: faltan muestras
+Muestras analizadas: 71
+Sesiones detectadas: 3
+Ultima sesion: opengl_high_6316
+Sesion analizada: all
+Mejor candidato: balanced
+Preset recomendado para jugar: balanced (baja)
+Presets listos: balanced, high
+Faltan presets: low
+Minimo por preset: 4 muestras
+
+Recomendacion: Mejor candidato parcial: balanced. Faltan muestras suficientes de: low.
+
+Resumen por preset:
+preset      muestras  fps_prom  fps_min  escala  vertices  uploads  stream_ms  nota
+----------  --------  --------  -------  ------  --------  -------  ---------  ----
+balanced          41      53.8      0.0    1.00     10618      0.0       50.0  Tiene caidas fuertes; conviene bajar detalle o revisar picos.
+high              30      49.9      0.0    1.00     18985      0.0       50.0  Tiene caidas fuertes; conviene bajar detalle o revisar picos.
+
+Lectura rapida:
+- fps_prom alto significa movimiento mas suave.
+- fps_min bajo revela tirones o caidas fuertes.
+- escala cerca de 1.00 significa que la calidad adaptativa no tuvo que bajar mucho.
+- uploads y stream_ms altos pueden indicar carga de chunks o mallas.
