@@ -1,5 +1,5 @@
 JUEGO 1.6 - ESTADO RAPIDO
-Fecha: 08/06/2026  7:14:33.62
+Fecha: 10/06/2026 13:10:10.37
 
 ESTRUCTURA PRINCIPAL
 --------------------
@@ -30,12 +30,12 @@ Python previews: C:\Users\ramonisai\.cache\codex-runtimes\codex-primary-runtime\
 PRESET GRAFICO
 --------------
 preset=balanced
-confidence=low
-samples=71
+confidence=ok
+samples=195
 best_preset=balanced
-ready_presets=balanced,high
-missing_presets=low
-reason=Mejor candidato parcial: balanced. Faltan muestras suficientes de: low.
+ready_presets=balanced,high,low
+missing_presets=
+reason=Mejor candidato con comparacion completa: balanced.
 
 RESUMEN
 -------
@@ -51,10 +51,10 @@ Para ver exactamente que paquete falta en cada Python, usa la opcion 3.
 Si ya guardaste una ruta local, la opcion 6 la usara automaticamente.
 
 Comando manual sugerido:
-py -m pip install -r "C:\Users\ramonisai\Downloads\JUEGO_1_6_STAGE33_F_FIRST_CHUNK_VISIBLE\JUEGO 1.6\requirements_juego.txt"
+py -m pip install -r "C:\Users\ramonisai\Downloads\super juego 3d\superjuego3d\requirements_juego.txt"
 
 Comando elegido por opcion 6:
-"C:\Users\ramonisai\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m pip install -r "C:\Users\ramonisai\Downloads\JUEGO_1_6_STAGE33_F_FIRST_CHUNK_VISIBLE\JUEGO 1.6\requirements_juego.txt"
+"C:\Users\ramonisai\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m pip install -r "C:\Users\ramonisai\Downloads\super juego 3d\superjuego3d\requirements_juego.txt"
 Python destino: Python Codex preview
 Faltan: pygame, PyOpenGL
 
@@ -63,4 +63,4 @@ Si queda listo, podra guardar esa ruta para futuros lanzadores.
 Despues ejecuta otra vez la opcion 12 para confirmar.
 
 Reporte guardado en:
-C:\Users\ramonisai\Downloads\JUEGO_1_6_STAGE33_F_FIRST_CHUNK_VISIBLE\JUEGO 1.6\juego3d_v1_5\logs\estado_rapido_juego.txt
+C:\Users\ramonisai\Downloads\super juego 3d\superjuego3d\juego3d_v1_5\logs\estado_rapido_juego.txt
