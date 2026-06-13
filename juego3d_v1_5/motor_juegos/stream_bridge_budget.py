@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Any, Dict
 import os
+from motor_juegos.env_config import read_env_int, read_env_text
 
 
 @dataclass
@@ -40,23 +41,12 @@ PRESETS = {
 }
 
 
-def _read_int(name: str, default: int, min_value: int, max_value: int) -> int:
-    raw = os.environ.get(name, "").strip()
-    if not raw:
-        return int(default)
-    try:
-        value = int(raw)
-    except ValueError:
-        return int(default)
-    return max(min_value, min(max_value, value))
-
-
 def get_stream_bridge_budget(
     default_detail_radius: int = 1,
     default_lod_radius: int = 2,
     default_max_requests: int = 3,
 ) -> StreamBridgeBudget:
-    preset = os.environ.get("JUEGO_STREAM_BRIDGE_PRESET", "safe").strip().lower() or "safe"
+    preset = read_env_text("JUEGO_STREAM_BRIDGE_PRESET", "safe", lower=True) or "safe"
     if preset not in PRESETS:
         preset = "safe"
 
@@ -67,9 +57,9 @@ def get_stream_bridge_budget(
     }
     values.update(PRESETS[preset])
 
-    detail_radius = _read_int("JUEGO_STREAM_DETAIL_RADIUS", values["detail_radius"], 1, 4)
-    lod_radius = _read_int("JUEGO_STREAM_LOD_RADIUS", values["lod_radius"], detail_radius, 6)
-    max_requests = _read_int("JUEGO_STREAM_MAX_REQUESTS", values["max_detail_requests"], 1, 12)
+    detail_radius = read_env_int("JUEGO_STREAM_DETAIL_RADIUS", values["detail_radius"], 1, 4)
+    lod_radius = read_env_int("JUEGO_STREAM_LOD_RADIUS", values["lod_radius"], detail_radius, 6)
+    max_requests = read_env_int("JUEGO_STREAM_MAX_REQUESTS", values["max_detail_requests"], 1, 12)
 
     return StreamBridgeBudget(
         preset=preset,

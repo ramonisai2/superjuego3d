@@ -10,6 +10,9 @@ Desde ahi puedes:
 - Comparar LOW / BALANCED / HIGH.
 - Previsualizar terreno.
 - Generar log de movimiento si hay bajones de FPS.
+- Probar el importador OBJ del motor.
+- Auditar valores repetidos que podrian reciclarse.
+- Auditar archivos Python grandes para trabajar mejor con LLM local.
 
 Si el juego no abre:
 1. Ejecuta VERIFICAR_ENTORNO_JUEGO.bat.
@@ -26,3 +29,30 @@ Notas:
 - No hace falta crear ZIP para seguir trabajando.
 - JUEGO_PYTHON_LOCAL.bat es configuracion privada de esta PC.
 - Los logs y previews son salidas temporales.
+- El importador OBJ es infraestructura futura: no cambia aun los modelos del mundo.
+- La auditoria de valores ayuda a reciclar constantes por significado, no por coincidencia.
+- La matematica de anillos de chunks ya vive en un modulo comun para evitar valores magicos repetidos.
+- Las variables de entorno de tuning se leen con helpers comunes para evitar conversiones duplicadas.
+- La opcion 15 ayuda a detectar archivos de mas de 1000 lineas y planear divisiones seguras.
+- main_config.py contiene presets y constantes que antes vivian dentro de main.py.
+- main_adaptive_quality.py contiene calidad adaptativa, distancias de render, fog y limites LOD.
+- main_resources.py contiene indices de piedra/madera/fibra, colisiones de roca y recoleccion basica.
+- main_preset_logging.py contiene muestras de rendimiento, logs runtime y detalle grafico.
+- main_spawn.py contiene busqueda de spawn seco y reaparicion segura.
+- main_hud_render.py contiene el render 2D del HUD runtime.
+- main_world_runtime.py contiene consultas de altura, agua cacheada y contexto del jugador.
+- main_render3d.py contiene render 3D, frame graph, visibilidad de chunks y entidades.
+- main_preload.py contiene la precarga inicial de chunks LOD/detalle antes de entrar al mundo.
+- main_save_runtime.py contiene los atajos F5/F9 de guardado y recarga en caliente.
+- main_entity_runtime.py contiene interaccion NPC y actualizacion runtime de NPCs/enemigos/restos.
+- main_combat_runtime.py contiene ataques, proyectiles y marcado visual/Z-lock de objetivos.
+- main_chunk_runtime.py contiene streaming, LOD, worker y compilacion de chunks.
+- motor_juegos\world_detail.py contiene presets/densidades de detalle visual del mundo.
+- motor_juegos\chunk_mesh_builder.py convierte terreno, rocas, plantas y arboles a ChunkMeshData.
+- game\entity_update_budget.py contiene reglas de actualizacion lejana/cercana de NPCs y enemigos.
+- game\npc_identity.py contiene nombres, profesiones, perfiles, presets visuales e IDs estables de NPCs.
+- game\npc_memory.py contiene memoria, confianza, notas e import/export de NPCs.
+- game\npc_ai_runtime.py contiene cache, cola, telemetria y adaptadores de IA local de NPCs.
+- game\projectiles.py contiene proyectiles de piedra que antes vivian dentro de main.py.
+- game\z_targeting.py contiene la logica reservada de lock-on/Z-target que antes vivia dentro de main.py.
+- main_screens.py contiene las pantallas de menu/carga que antes vivian dentro de main.py.

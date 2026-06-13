@@ -1,5 +1,5 @@
 JUEGO 1.6 - ESTADO RAPIDO
-Fecha: 10/06/2026 13:10:10.37
+Fecha: 12/06/2026 20:35:33.22
 
 ESTRUCTURA PRINCIPAL
 --------------------
@@ -9,15 +9,48 @@ OK     archivo  requirements_juego.txt
 OK     archivo  LANZAR_OPENGL.bat
 OK     archivo  LANZAR_OPENGL_RECOMENDADO.bat
 OK     archivo  PROBAR_PRESETS_OPENGL.bat
+OK     archivo  PROBAR_IMPORTADOR_OBJ.bat
+OK     archivo  AUDITAR_VALORES_RECICLABLES.bat
+OK     archivo  AUDITAR_TAMANO_PY.bat
 OK     archivo  VERIFICAR_ENTORNO_JUEGO.bat
 OK     archivo  VERIFICAR_ESTRUCTURA_JUEGO.bat
 OK     archivo  SELECCIONAR_PYTHON_JUEGO.bat
 OK     archivo  SELECCIONAR_PYTHON_REPARACION.bat
 OK     archivo  juego3d_v1_5\main.py
+OK     archivo  juego3d_v1_5\motor_juegos\env_config.py
+OK     archivo  juego3d_v1_5\motor_juegos\chunk_math.py
+OK     archivo  juego3d_v1_5\motor_juegos\world_detail.py
+OK     archivo  juego3d_v1_5\motor_juegos\chunk_mesh_builder.py
+OK     archivo  juego3d_v1_5\motor_juegos\obj_asset_loader.py
+OK     archivo  juego3d_v1_5\main_config.py
+OK     archivo  juego3d_v1_5\main_adaptive_quality.py
+OK     archivo  juego3d_v1_5\main_resources.py
+OK     archivo  juego3d_v1_5\main_preset_logging.py
+OK     archivo  juego3d_v1_5\main_spawn.py
+OK     archivo  juego3d_v1_5\main_hud_render.py
+OK     archivo  juego3d_v1_5\main_world_runtime.py
+OK     archivo  juego3d_v1_5\main_render3d.py
+OK     archivo  juego3d_v1_5\main_preload.py
+OK     archivo  juego3d_v1_5\main_save_runtime.py
+OK     archivo  juego3d_v1_5\main_entity_runtime.py
+OK     archivo  juego3d_v1_5\main_combat_runtime.py
+OK     archivo  juego3d_v1_5\main_chunk_runtime.py
+OK     archivo  juego3d_v1_5\main_screens.py
+OK     archivo  juego3d_v1_5\probar_importador_obj.py
+OK     archivo  juego3d_v1_5\auditar_valores_reciclables.py
+OK     archivo  juego3d_v1_5\auditar_tamano_py.py
+OK     archivo  juego3d_v1_5\assets\models\obj_probe_crate.obj
 OK     archivo  juego3d_v1_5\player_skin_texture_atlas.png
+OK     archivo  juego3d_v1_5\game\entity_update_budget.py
+OK     archivo  juego3d_v1_5\game\npc_identity.py
+OK     archivo  juego3d_v1_5\game\npc_memory.py
+OK     archivo  juego3d_v1_5\game\npc_ai_runtime.py
+OK     archivo  juego3d_v1_5\game\projectiles.py
+OK     archivo  juego3d_v1_5\game\z_targeting.py
 OK     carpeta  juego3d_v1_5\
 OK     carpeta  juego3d_v1_5\motor_juegos\
 OK     carpeta  juego3d_v1_5\assets\
+OK     carpeta  juego3d_v1_5\assets\models\
 OK     carpeta  ARCHIVO_ETAPAS\
 
 PYTHON
@@ -30,12 +63,15 @@ Python previews: C:\Users\ramonisai\.cache\codex-runtimes\codex-primary-runtime\
 PRESET GRAFICO
 --------------
 preset=balanced
-confidence=ok
-samples=195
+confidence=low
+samples=219
+ignored_empty_startup_samples=9
 best_preset=balanced
-ready_presets=balanced,high,low
-missing_presets=
-reason=Mejor candidato con comparacion completa: balanced.
+ready_presets=balanced,high
+missing_presets=low
+severe_drop_presets=balanced,high
+bottleneck_hint=Probable render/LOD: los tirones coinciden con muchos vertices visibles o chunks LOD, sin uploads altos. Revisar distancia, impostores y detalle lejano.
+reason=Mejor candidato parcial: balanced. Faltan muestras suficientes de: low.
 
 RESUMEN
 -------
@@ -51,10 +87,10 @@ Para ver exactamente que paquete falta en cada Python, usa la opcion 3.
 Si ya guardaste una ruta local, la opcion 6 la usara automaticamente.
 
 Comando manual sugerido:
-py -m pip install -r "C:\Users\ramonisai\Downloads\super juego 3d\superjuego3d\requirements_juego.txt"
+py -m pip install -r "C:\Users\ramonisai\Downloads\JUEGO_1_6_STAGE33_F_FIRST_CHUNK_VISIBLE\JUEGO 1.6\requirements_juego.txt"
 
 Comando elegido por opcion 6:
-"C:\Users\ramonisai\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m pip install -r "C:\Users\ramonisai\Downloads\super juego 3d\superjuego3d\requirements_juego.txt"
+"C:\Users\ramonisai\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m pip install -r "C:\Users\ramonisai\Downloads\JUEGO_1_6_STAGE33_F_FIRST_CHUNK_VISIBLE\JUEGO 1.6\requirements_juego.txt"
 Python destino: Python Codex preview
 Faltan: pygame, PyOpenGL
 
@@ -63,4 +99,4 @@ Si queda listo, podra guardar esa ruta para futuros lanzadores.
 Despues ejecuta otra vez la opcion 12 para confirmar.
 
 Reporte guardado en:
-C:\Users\ramonisai\Downloads\super juego 3d\superjuego3d\juego3d_v1_5\logs\estado_rapido_juego.txt
+C:\Users\ramonisai\Downloads\JUEGO_1_6_STAGE33_F_FIRST_CHUNK_VISIBLE\JUEGO 1.6\juego3d_v1_5\logs\estado_rapido_juego.txt

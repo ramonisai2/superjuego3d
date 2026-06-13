@@ -29,7 +29,7 @@ set JUEGO_PRESET_SAMPLE_LOG=1
 set JUEGO_PRESET_SAMPLE_SESSION=opengl_recommended_%JUEGO_RECOMMENDED_PRESET%_%RANDOM%
 echo Preset recomendado: %JUEGO_RECOMMENDED_PRESET%  confianza: %JUEGO_RECOMMENDED_CONFIDENCE%
 if /i not "%JUEGO_RECOMMENDED_CONFIDENCE%"=="ok" (
-    echo Advertencia: faltan pruebas completas de low, balanced y high. Se usara balanced como respaldo.
+    echo Advertencia: el preset recomendado requiere atencion. Revisa opcion 9 o el reporte de presets.
 )
 call "%~dp0SELECCIONAR_PYTHON_JUEGO.bat" || (pause & exit /b 1)
 "%JUEGO_PY_CMD%" -m motor_juegos.render_mode_status

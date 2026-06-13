@@ -198,8 +198,27 @@ class RenderBackendBase:
     def release_gpu_handle(self, handle: Any) -> None:
         raise NotImplementedError
 
-    def is_chunk_visible(self, env_module, cx: int, cz: int, px: float, pz: float, lx: float, lz: float, *, size: float, max_distance: float) -> bool:
-        return env_module.is_chunk_visible(cx, cz, px, pz, lx, lz, size=size, max_distance=max_distance)
+    def is_chunk_visible(
+        self,
+        env_module,
+        cx: int,
+        cz: int,
+        px: float,
+        pz: float,
+        lx: float,
+        lz: float,
+        *,
+        size: float,
+        max_distance: float,
+        near_keep: Optional[float] = None,
+        back_margin: Optional[float] = None,
+    ) -> bool:
+        kwargs = {"size": size, "max_distance": max_distance}
+        if near_keep is not None:
+            kwargs["near_keep"] = near_keep
+        if back_margin is not None:
+            kwargs["back_margin"] = back_margin
+        return env_module.is_chunk_visible(cx, cz, px, pz, lx, lz, **kwargs)
 
     def shutdown(self) -> None:
         pass

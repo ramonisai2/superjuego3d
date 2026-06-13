@@ -1,7 +1,7 @@
 RUTA DE TRABAJO - HOY Y MANANA
 
 Estado actual:
-- Etapa actual: Stage38 B - ESTRUCTURA VERIFICABLE.
+- Etapa actual: Stage39 T - MAIN CHUNK RUNTIME MODULE.
 - Modo recomendado para jugar/probar: INICIO_JUEGO.bat.
 - Vulkan sigue experimental. No usarlo como modo principal todavia.
 - Metodo de terreno default: current.
@@ -1093,6 +1093,356 @@ Opcion A42 - Si el siguiente paso es estado visual de mochila
    - ESTADO_RAPIDO_JUEGO.bat muestra comando elegido por opcion 6, origen y paquetes faltantes.
    - No instala nada automaticamente.
 
+   Stage38 M - CONFIANZA HONESTA (HECHO)
+   Objetivo:
+   - No marcar como confianza alta una comparacion con caidas fuertes.
+   - Separar comparacion completa de estabilidad real.
+   - Actualizar verificacion de estructura con piezas recientes.
+   Resultado:
+   - preset_runtime_log_analyzer.py detecta presets con fps_min menor a 24.
+   - Si hay caidas fuertes, recommended_graphics_preset.txt queda con confidence=low.
+   - El reporte lista severe_drop_presets.
+   - VERIFICAR_ESTRUCTURA_JUEGO.bat revisa selector de reparacion y helpers nuevos.
+   - VERIFICAR_ESTRUCTURA_JUEGO.bat usa checks directos para evitar salida duplicada en pruebas automaticas.
+
+   Stage38 N - ARRANQUE NO ES CAIDA (HECHO)
+   Objetivo:
+   - No contar muestras vacias de arranque como caidas reales.
+   - Mantener advertencias solo cuando ya hay mundo dibujado.
+   - Hacer mas justo el calculo de confianza del preset.
+   Resultado:
+   - preset_runtime_log_analyzer.py ignora muestras con fps 0, verts 0, chunks 0 y entidades 0.
+   - El reporte muestra ignored_empty_startup_samples.
+   - recommended_graphics_preset.txt guarda ignored_empty_startup_samples.
+
+   Stage38 O - PEORES MUESTRAS (HECHO)
+   Objetivo:
+   - Ver el contexto de las peores caidas reales.
+   - Distinguir si el tiron coincide con vertices, chunks, uploads o poca carga.
+   - Preparar la siguiente investigacion de rendimiento.
+   Resultado:
+   - preset_runtime_log_analyzer.py agrega Peores muestras reales.
+   - El reporte muestra preset, fps, vertices, chunksD, chunksLOD, uploads, hiddenChunks y sesion.
+   - Las muestras vacias de arranque siguen ignoradas.
+
+   Stage38 P - PISTA DE CUELLO (HECHO)
+   Objetivo:
+   - Convertir las peores muestras en una pista accionable.
+   - Distinguir render/LOD, streaming/carga o CPU/logica.
+   - Decidir mejor el siguiente ajuste de rendimiento.
+   Resultado:
+   - preset_runtime_log_analyzer.py calcula bottleneck_hint.
+   - El reporte y recommended_graphics_preset.txt guardan la pista.
+   - En los logs actuales apunta a render/LOD si hay muchos vertices/chunks LOD sin uploads altos.
+
+   Stage38 Q - LOD CONSERVADOR (HECHO)
+   Objetivo:
+   - Reducir chunks LOD visibles cuando el preset no necesita tanto horizonte.
+   - Mantener high como modo mas amplio, pero bajar low/balanced para probar FPS al moverse.
+   - Medir chunkDist y chunkExtra en logs para comparar cambios.
+   Resultado:
+   - low usa chunk_render_extra 1.10.
+   - balanced usa chunk_render_extra 1.35.
+   - high usa chunk_render_extra 1.65.
+   - JUEGO_CHUNK_RENDER_EXTRA y JUEGO_CHUNK_RENDER_MIN_EXTRA permiten probar otros valores sin editar codigo.
+   - preset_runtime_log_analyzer.py muestra chunkDist y extra en resumen y peores muestras.
+
+   Stage38 R - VERTICES VISIBLES (HECHO)
+   Objetivo:
+   - Medir carga real dibujada por frame.
+   - Separar vertices visibles de detalle y LOD.
+   - No confundir el ultimo mesh subido con todo lo que se esta renderizando.
+   Resultado:
+   - build_simple_chunk_list devuelve NeutralMeshHandle con vertex_count, index_count y byte_size estimados.
+   - RenderFrameGraph suma visible_chunk_vertices, visible_detail_vertices, visible_lod_vertices y visible_chunk_bytes.
+   - preset_runtime_samples.log agrega visibleVerts, visibleDetailVerts, visibleLODVerts y visibleKB.
+   - preset_runtime_log_analyzer.py usa visibleVerts como senal principal cuando existe y conserva verts como respaldo para logs viejos.
+
+   Stage38 S - DETALLE A LA VISTA (HECHO)
+   Objetivo:
+   - Separar culling de chunks detail y chunks LOD.
+   - Evitar dibujar demasiados chunks detallados detras de la camara.
+   - Medir detailDist/detailNear/detailBack junto con visibleDetailVerts.
+   Resultado:
+   - low, balanced y high tienen detail_render_extra, detail_near_keep y detail_back_margin propios.
+   - render_backend.is_chunk_visible acepta near_keep y back_margin por llamada.
+   - environment.is_chunk_visible conserva compatibilidad si no recibe esos parametros.
+   - El HUD F1 muestra distancia/near_keep de detail.
+   - preset_runtime_samples.log agrega detailDist, detailNear y detailBack.
+
+   Stage38 T - PUERTA OBJ (HECHO)
+   Objetivo:
+   - Preparar el motor para importar modelos .obj sin cambiar todavia el arte del juego.
+   - Cargar, normalizar, cachear y convertir OBJ a buffers neutrales.
+   - Tener una prueba sin ventana que funcione aun sin pygame/PyOpenGL.
+   Resultado:
+   - obj_asset_loader.py carga v/vt/vn/f/o/g/usemtl y triangula caras.
+   - ObjAssetRegistry registra y cachea modelos por asset_id.
+   - obj_mesh_to_entity_buffer() convierte OBJ a EntityMeshBufferData para OpenGL/Vulkan futuro.
+   - Se agrego assets\models\obj_probe_crate.obj como modelo de prueba.
+   - PROBAR_IMPORTADOR_OBJ.bat e INICIO_JUEGO opcion 13 validan la puerta OBJ.
+
+   Stage38 U - VALORES RECICLABLES (HECHO)
+   Objetivo:
+   - Revisar literales repetidos y decidir cuales se pueden reciclar.
+   - Reutilizar valores con significado compartido sin convertir todo en constantes globales.
+   - Dejar una herramienta para repetir la auditoria.
+   Resultado:
+   - main.py usa env.GRASS_DENSITY, env.DECO_DENSITY y env.ROCK_DENSITY para compensacion de recursos.
+   - Se agrego auditar_valores_reciclables.py.
+   - Se agrego AUDITAR_VALORES_RECICLABLES.bat.
+   - INICIO_JUEGO.bat agrega opcion 14.
+   - El reporte queda en juego3d_v1_5\logs\valores_reciclables_report.txt.
+
+   Stage38 V - ANILLOS COMPARTIDOS (HECHO)
+   Objetivo:
+   - Reciclar un valor repetido por significado, no por coincidencia.
+   - Compartir la matematica de anillos de chunks usada por pruebas de streaming.
+   - Evitar que el margen de culling se desajuste entre pruebas Vulkan/OpenGL futuras.
+   Resultado:
+   - Se agrego motor_juegos\chunk_math.py.
+   - CHUNK_RING_CULL_MARGIN = 0.35 ahora tiene nombre propio.
+   - vulkan_multi_chunk_probe.py, vulkan_player_chunk_ring_probe.py y vulkan_chunk_streaming_probe.py usan las mismas funciones de anillo.
+
+   Stage38 W - ENV COMPARTIDO (HECHO)
+   Objetivo:
+   - Reciclar la lectura repetida de variables de entorno.
+   - Mantener fallbacks seguros cuando un valor de tuning esta vacio o mal escrito.
+   - Preparar una base mas limpia para seguir ajustando FPS sin duplicar conversiones.
+   Resultado:
+   - Se agrego motor_juegos\env_config.py.
+   - main.py usa read_env_bool/read_env_float/read_env_int/read_env_text para presets y tuning.
+   - environment.py usa helpers comunes para densidades, agua y modo de terreno.
+   - stream_bridge_budget.py usa helpers comunes para radios y presupuesto del puente.
+
+   Stage38 X - CONTEXTO LLM (HECHO)
+   Objetivo:
+   - Ayudar a trabajar con LLM local, Ollama, VS Code y Continue.
+   - Detectar archivos Python demasiado grandes para una ventana de contexto pequena.
+   - Planear divisiones de menos de 1000 lineas sin romper imports.
+   Resultado:
+   - Se agrego auditar_tamano_py.py.
+   - Se agrego AUDITAR_TAMANO_PY.bat.
+   - INICIO_JUEGO.bat agrega opcion 15.
+   - El reporte queda en juego3d_v1_5\logs\tamano_py_report.txt.
+   - Candidatos principales: main.py, game\npc_manager.py y motor_juegos\environment.py.
+
+   Stage38 Y - MAIN CONFIG (HECHO)
+   Objetivo:
+   - Empezar a partir main.py por el bloque menos riesgoso.
+   - Sacar presets, constantes y lectura de variables JUEGO_* a un archivo propio.
+   - Mantener los nombres usados por main.py para no cambiar comportamiento.
+   Resultado:
+   - Se agrego main_config.py.
+   - main.py importa configuracion desde main_config.py.
+   - main.py queda listo para el siguiente corte: main_world_queries.py.
+
+   Stage38 Z - PROJECTILES MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py una unidad clara de gameplay.
+   - Mover fisica/render de proyectiles de piedra a game\projectiles.py.
+   - Dejar main.py coordinando lista runtime, no definiendo la clase.
+   Resultado:
+   - Se agrego game\projectiles.py.
+   - StoneProjectile, spawn_stone_projectile y update_stone_projectiles salieron de main.py.
+   - main.py conserva stone_projectiles y las llamadas en update/render.
+
+   Stage39 A - Z TARGET MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py la logica reservada de Z-targeting/lock-on.
+   - Mantener el comportamiento actual sin reactivar controles que no estaban conectados.
+   - Dejar un modulo claro para volver a conectar el sistema mas adelante.
+   Resultado:
+   - Se agrego game\z_targeting.py.
+   - find_z_target, z_target_candidates y ZTargetState viven fuera de main.py.
+   - Se retiraron de main.py funciones de Z-targeting que estaban definidas pero no llamadas.
+
+   Stage39 B - MAIN SCREENS (HECHO)
+   Objetivo:
+   - Sacar de main.py las pantallas simples de menu/carga.
+   - Mantener el arranque igual pero con un modulo separado.
+   - Pasar engine/render_backend/r2d/ancho/alto como dependencias explicitas.
+   Resultado:
+   - Se agrego main_screens.py.
+   - draw_simple_screen, show_loading_screen y show_start_menu salieron de main.py.
+   - main.py ya no importa helpers de estado/render/guardado usados solo por el menu.
+
+   Stage39 C - ADAPTIVE QUALITY MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py reglas de calidad adaptativa y distancias de render.
+   - Mantener tuning de FPS en un modulo pequeno para LLM local.
+   - Dejar main.py consultando valores, no calculando politica adaptativa.
+   Resultado:
+   - Se agrego main_adaptive_quality.py.
+   - AdaptiveQualityRuntime controla escala, fog, distancias de chunks, entidad y limite LOD.
+   - main.py consulta adaptive_runtime en update/render.
+
+   Stage39 D - WORLD RESOURCE MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py indices de recursos del mundo y recoleccion basica.
+   - Mantener piedra, fibra, madera y colliders de roca en un runtime dedicado.
+   - Reducir globals sueltos en main.py.
+   Resultado:
+   - Se agrego main_resources.py.
+   - WorldResourceRuntime administra recursos por chunk, cooldowns de recoleccion y colliders.
+   - main.py delega add/remove de recursos y pickup del jugador a resource_runtime.
+
+   Stage39 E - ENTITY BUDGET MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py reglas de actualizacion lejana/cercana de entidades.
+   - Mantener NPCs y enemigos con IA completa cerca, y throttling lejos.
+   - Dejar main.py coordinando listas, no calculando politica de IA.
+   Resultado:
+   - Se agrego game\entity_update_budget.py.
+   - update_npc_with_budget y update_enemy_with_budget viven fuera de main.py.
+   - main.py pasa distancias e intervalos desde main_config.py.
+
+   Stage39 F - PRESET LOGGING MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py logs de muestras de FPS, vertices, LOD y densidad.
+   - Mantener el diagnostico de presets sin llenar el bucle principal.
+   - Dejar render_3d pidiendo estado de detalle desde un helper dedicado.
+   Resultado:
+   - Se agrego main_preset_logging.py.
+   - append_preset_runtime_sample, append_preset_session_start y world_detail_debug_status viven fuera de main.py.
+   - main.py sigue registrando las mismas muestras de rendimiento.
+
+   Stage39 G - SPAWN SAFETY MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py busqueda de spawn seco para NPCs/enemigos.
+   - Sacar busqueda de posicion segura de jugador y respawn.
+   - Mantener logs de seguridad con la semilla actual.
+   Resultado:
+   - Se agrego main_spawn.py.
+   - SpawnRuntime administra find_dry_position, find_safe_player_position y set_player_respawn_point.
+   - main.py actualiza spawn_runtime.seed al elegir semilla desde el menu.
+
+   Stage39 H - HUD RENDER MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py el render 2D del HUD runtime.
+   - Mantener UI, FPS, debug de Admin Hub, Z-target y prompts sin cambiar comportamiento.
+   - Dejar render_2d como una llamada explicita con dependencias.
+   Resultado:
+   - Se agrego main_hud_render.py.
+   - render_runtime_hud dibuja HUD, debug, etiquetas, crosshair y Admin Hub.
+   - main.py conserva render_2d como fachada pequena para engine.run.
+
+   Stage39 I - WORLD RUNTIME MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py consultas de altura, agua cacheada y contexto del jugador.
+   - Mantener funciones fachada para no romper Player, NPCs, enemigos y chunks.
+   - Centralizar caches de altura/agua por semilla.
+   Resultado:
+   - Se agrego main_world_runtime.py.
+   - WorldRuntime administra get_total_height, is_water_position y update_player_world_context.
+   - main.py actualiza world_runtime.seed al elegir semilla desde el menu.
+
+   Stage39 J - RENDER 3D MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py el render 3D y armado del frame graph.
+   - Mantener render_3d como fachada pequena para engine.run.
+   - Devolver render_stats, z_target_screen y npc_label_screen de forma explicita.
+   Resultado:
+   - Se agrego main_render3d.py.
+   - render_runtime_3d administra skybox, fog, chunks visibles, entidades y arma en primera persona.
+   - main.py ya no importa FogConfig ni render_player_avatar/render_first_person_weapon.
+
+   Stage39 K - NPC IDENTITY MODULE (HECHO)
+   Objetivo:
+   - Empezar a partir game\npc_manager.py por el bloque menos riesgoso.
+   - Sacar nombres, profesiones, perfiles, presets visuales e IDs estables.
+   - Mantener compatibilidad de imports desde npc_manager.py.
+   Resultado:
+   - Se agrego game\npc_identity.py.
+   - npc_manager.py importa identidad, perfiles, skins y helpers estables desde ese modulo.
+   - La clase NPC conserva comportamiento y nombres publicos.
+
+   Stage39 L - NPC MEMORY MODULE (HECHO)
+   Objetivo:
+   - Sacar de game\npc_manager.py memoria persistente, confianza y notas recientes.
+   - Mantener export/import de memoria desde npc_manager.py por compatibilidad.
+   - Reducir el archivo principal de NPCs antes de tocar IA local.
+   Resultado:
+   - Se agrego game\npc_memory.py.
+   - npc_manager.py importa npc_memory_for, remember_npc_event, snapshots e import/export.
+   - need_status_text tambien vive en npc_memory.py.
+
+   Stage39 M - NPC AI RUNTIME MODULE (HECHO)
+   Objetivo:
+   - Sacar de game\npc_manager.py cache, cola, telemetria y backend local de dialogo.
+   - Mantener las funciones publicas importables desde npc_manager.py por compatibilidad.
+   - Dejar el camino mas limpio para conectar Ollama/modelo local mas adelante.
+   Resultado:
+   - Se agrego game\npc_ai_runtime.py.
+   - npc_manager.py conserva la clase NPC, movimiento, necesidades y fachada publica.
+   - La IA local de NPCs queda aislada de identidad, memoria, render y spawn.
+
+   Stage39 N - ENVIRONMENT SPLIT MODULES (HECHO)
+   Objetivo:
+   - Bajar motor_juegos\environment.py por debajo de 1000 lineas.
+   - Separar presets/densidades de detalle visual del mundo.
+   - Separar construccion neutral de ChunkMeshData para terreno, rocas, plantas y arboles.
+   Resultado:
+   - Se agrego motor_juegos\world_detail.py.
+   - Se agrego motor_juegos\chunk_mesh_builder.py.
+   - environment.py conserva la API publica de terreno, agua, render legacy, cielo, LOD y culling.
+   - AUDITAR_TAMANO_PY.bat ya no reporta archivos sobre la meta de 1000 lineas.
+
+   Stage39 O - MAIN PRELOAD MODULE (HECHO)
+   Objetivo:
+   - Dar mas margen a main.py sin tocar el loop principal.
+   - Separar la pantalla/carga inicial de chunks LOD y detalle.
+   Resultado:
+   - Se agrego main_preload.py.
+   - main.py importa preload_initial_chunks y le pasa dependencias explicitas.
+   - Si falla la carga inicial del mundo, revisar primero main_preload.py.
+
+   Stage39 P - MAIN SAVE RUNTIME MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py los atajos F5/F9 de guardado y recarga.
+   - Mantener la reposicion segura del jugador al recargar.
+   Resultado:
+   - Se agrego main_save_runtime.py.
+   - main.py llama handle_save_hotkeys() dentro del update.
+   - Si falla F5/F9 o la recarga en caliente, revisar primero main_save_runtime.py.
+
+   Stage39 Q - MAIN ENTITY RUNTIME MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py interaccion NPC y actualizacion runtime de entidades.
+   - Mantener presupuesto por distancia para NPCs/enemigos.
+   Resultado:
+   - Se agrego main_entity_runtime.py.
+   - main.py llama handle_npc_interaction() y update_entities_runtime().
+   - Si falla highlight/dialogo NPC o actualizacion de NPCs/enemigos/restos, revisar primero main_entity_runtime.py.
+
+   Stage39 R - MAIN COMBAT RUNTIME MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py ataques, proyectiles y marcado visual/Z-lock de objetivos.
+   - Mantener compatible piedra arrojada, golpe cuerpo a cuerpo y seleccion cercana.
+   Resultado:
+   - Se agrego main_combat_runtime.py.
+   - main.py llama update_combat_runtime() y conserva el estado devuelto.
+   - Si falla ataque, lanzamiento de piedra, proyectiles o marcado de objetivo, revisar primero main_combat_runtime.py.
+
+   Stage39 S - MAIN RUNTIME LOGGING (HECHO)
+   Objetivo:
+   - Sacar de main.py el print runtime de FOV/chunk/stream bridge.
+   - Mantener muestras de preset junto a main_preset_logging.py.
+   Resultado:
+   - main_preset_logging.py ahora contiene update_runtime_logs().
+   - main.py solo actualiza tiempo_log y preset_sample_accum con el resultado devuelto.
+   - Si falla el reporte de consola, stream bridge o muestras de preset, revisar primero main_preset_logging.py.
+
+   Stage39 T - MAIN CHUNK RUNTIME MODULE (HECHO)
+   Objetivo:
+   - Sacar de main.py streaming, LOD, comunicacion con worker y compilacion de chunks.
+   - Mantener mundo_chunks y mundo_chunks_simple compartidos con render/preload.
+   Resultado:
+   - Se agrego main_chunk_runtime.py.
+   - MainChunkRuntime opera sobre las listas/diccionarios existentes por referencia.
+   - main.py conserva solo el timer y llama metodos del runtime de chunks.
+   - Si falla streaming, LOD, worker, chunks pendientes o compilacion de chunks, revisar primero main_chunk_runtime.py.
+
 Opcion B - Si el problema principal es visual/terreno
    Stage34 C - AGUA DE MESETA NATURAL
    Objetivo:
@@ -1133,10 +1483,44 @@ Recomendacion actual:
 - Revisar el reporte con la opcion 7 del menu o en juego3d_v1_5\logs\preset_runtime_report.txt.
 - Probar el ganador con la opcion 8 del menu; esa opcion refresca el analisis antes de arrancar.
 - Ver el recomendado sin abrir juego con la opcion 9 del menu.
+- Si confidence queda low por severe_drop_presets, investigar tirones antes de asumir que el preset esta sano.
+- Las muestras vacias de arranque se ignoran antes de decidir si hubo caidas reales.
+- Revisar Peores muestras reales para decidir si el problema apunta a LOD, streaming o CPU/movimiento.
+- Revisar bottleneck_hint para elegir el siguiente ajuste de rendimiento.
+- Tras Stage38 Q, correr PROBAR_PRESETS_OPENGL.bat otra vez para comparar chunkDist/chunksLOD/FPS contra los logs anteriores.
+- Tras Stage38 R, mirar visibleV y lodV en el reporte: si lodV domina, afinar horizonte/LOD; si visibleDetailVerts domina, recortar detalle cercano o densidad.
+- Tras Stage38 S, mirar si visibleDetailVerts baja al moverse. Si aparecen huecos o popping al girar, subir JUEGO_DETAIL_CHUNK_NEAR_KEEP.
+- Usar la opcion 13 de INICIO_JUEGO.bat para comprobar que la puerta OBJ sigue importando y cacheando modelos.
+- Usar la opcion 14 de INICIO_JUEGO.bat para auditar valores repetidos antes de crear nuevas constantes.
+- Tras Stage38 V, si se toca streaming/culling de chunks, cambiar primero motor_juegos\chunk_math.py.
+- Tras Stage38 W, si se agrega una variable JUEGO_* nueva, leerla desde motor_juegos\env_config.py.
+- Usar la opcion 15 de INICIO_JUEGO.bat para revisar que archivos superan 1000 lineas antes de pedir ayuda a Continue/Ollama.
+- Tras Stage38 Y, cambiar presets/radios/distancias base en main_config.py, no en main.py.
+- Tras Stage38 Z, cambiar fisica/daño/render de piedras lanzadas en game\projectiles.py.
+- Tras Stage39 A, reactivar lock-on desde game\z_targeting.py si se decide volver a usar Q/TAB.
+- Tras Stage39 B, cambiar texto o comportamiento del menu inicial en main_screens.py.
+- Tras Stage39 C, cambiar reglas de calidad adaptativa en main_adaptive_quality.py.
+- Tras Stage39 D, cambiar radios/cooldowns de recoleccion o colliders de rocas en main_resources.py.
+- Tras Stage39 E, cambiar reglas de IA lejana/cercana en game\entity_update_budget.py.
+- Tras Stage39 F, cambiar formato de muestras de preset en main_preset_logging.py.
+- Tras Stage39 G, cambiar reglas de spawn seco o reaparicion segura en main_spawn.py.
+- Tras Stage39 H, cambiar layout/textos del HUD runtime en main_hud_render.py.
+- Tras Stage39 I, cambiar caches de altura/agua o contexto de nado en main_world_runtime.py.
+- Tras Stage39 J, cambiar render 3D, visibilidad de chunks o frame graph en main_render3d.py.
+- Tras Stage39 K, cambiar profesiones, skins por zonas o generacion de ID en game\npc_identity.py.
+- Tras Stage39 L, cambiar memoria/confianza/notas de NPCs en game\npc_memory.py.
+- Tras Stage39 M, cambiar cache/cola/backend local/telemetria de dialogo NPC en game\npc_ai_runtime.py.
+- Tras Stage39 N, cambiar densidades/presets de mundo en motor_juegos\world_detail.py y conversion a MeshData en motor_juegos\chunk_mesh_builder.py.
+- Tras Stage39 O, cambiar la precarga inicial de chunks en main_preload.py.
+- Tras Stage39 P, cambiar F5/F9, save runtime o reposicion al recargar en main_save_runtime.py.
+- Tras Stage39 Q, cambiar interaccion NPC o actualizacion runtime de entidades en main_entity_runtime.py.
+- Tras Stage39 R, cambiar ataque, proyectiles o marcado visual/Z-lock en main_combat_runtime.py.
+- Tras Stage39 S, cambiar logs runtime, stream bridge print o muestras de preset en main_preset_logging.py.
+- Tras Stage39 T, cambiar streaming/LOD/worker/compilacion de chunks en main_chunk_runtime.py.
 - Revisar visualmente lagos/orillas: el agua ya no deberia flotar metros sobre el terreno.
 - Matar algunos slimes y confirmar que el charco queda visible sobre el suelo.
 - Si sigue bajando mucho FPS, ejecutar ANALIZAR_PERF_MOVIMIENTO.bat despues de un log.
-- Siguiente frente probable: ajustar valores segun el resultado de presets o correr nuevo log y revisar world_context, player_move, ai, chunk_lod y chunk_compile.
+- Siguiente frente probable: si se sigue con limpieza, extraer valores de tuning de render que tengan significado claro; si se sigue con FPS, probar Stage38 S/V en movimiento y leer visibleDetailVerts/lodV.
 
 Regla importante:
 - No hacer ZIP salvo que se pida.

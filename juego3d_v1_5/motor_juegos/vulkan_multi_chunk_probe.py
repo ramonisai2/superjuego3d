@@ -16,8 +16,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Tuple
-import math
 import time
+from motor_juegos.chunk_math import generate_square_chunk_ring, passes_chunk_ring_cull
 
 
 ChunkCoord = Tuple[int, int]
@@ -51,17 +51,11 @@ class VulkanMultiChunkStatus:
 
 
 def _generate_chunk_ring(radius: int) -> List[ChunkCoord]:
-    radius = max(1, int(radius))
-    coords: List[ChunkCoord] = []
-    for z in range(-radius, radius + 1):
-        for x in range(-radius, radius + 1):
-            coords.append((x, z))
-    return sorted(coords, key=lambda c: (abs(c[0]) + abs(c[1]), c[1], c[0]))
+    return generate_square_chunk_ring((0, 0), radius)
 
 
 def _passes_simple_culling(coord: ChunkCoord, radius: int) -> bool:
-    x, z = coord
-    return math.sqrt(float(x * x + z * z)) <= float(radius) + 0.35
+    return passes_chunk_ring_cull(coord, (0, 0), radius)
 
 
 def _make_draw_commands(coords: List[ChunkCoord], radius: int) -> List[Dict[str, Any]]:

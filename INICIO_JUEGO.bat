@@ -19,6 +19,9 @@ echo  9. Previsualizar terreno
 echo 10. Log de movimiento OpenGL
 echo 11. Verificar estructura del proyecto
 echo 12. Estado rapido del proyecto
+echo 13. Probar importador OBJ
+echo 14. Auditar valores reciclables
+echo 15. Auditar tamano de archivos Python
 echo  0. Salir
 echo.
 set /p OPCION=Elige una opcion: 
@@ -35,6 +38,9 @@ if "%OPCION%"=="9" goto preview
 if "%OPCION%"=="10" goto perf_log
 if "%OPCION%"=="11" goto verificar_estructura
 if "%OPCION%"=="12" goto estado_rapido
+if "%OPCION%"=="13" goto probar_obj
+if "%OPCION%"=="14" goto auditar_valores
+if "%OPCION%"=="15" goto auditar_tamano_py
 if "%OPCION%"=="0" exit /b 0
 goto menu
 
@@ -84,4 +90,16 @@ goto menu
 
 :estado_rapido
 call "%~dp0ESTADO_RAPIDO_JUEGO.bat"
+goto menu
+
+:probar_obj
+call "%~dp0PROBAR_IMPORTADOR_OBJ.bat"
+goto menu
+
+:auditar_valores
+call "%~dp0AUDITAR_VALORES_RECICLABLES.bat"
+goto menu
+
+:auditar_tamano_py
+call "%~dp0AUDITAR_TAMANO_PY.bat"
 goto menu

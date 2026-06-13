@@ -18,6 +18,7 @@ from dataclasses import dataclass, asdict
 from typing import Any, Dict, Iterable, List, Set, Tuple
 import math
 import time
+from motor_juegos.chunk_math import chunk_coord, generate_visible_chunk_ring
 
 
 ChunkCoord = Tuple[int, int]
@@ -60,19 +61,8 @@ class VulkanChunkStreamingStatus:
         return asdict(self)
 
 
-def _chunk_coord(value: float, chunk_size: float) -> int:
-    return int(math.floor(float(value) / max(1.0, float(chunk_size))))
-
-
 def _ring(center: ChunkCoord, radius: int) -> Set[ChunkCoord]:
-    cx, cz = center
-    radius = max(1, int(radius))
-    coords: Set[ChunkCoord] = set()
-    for dz in range(-radius, radius + 1):
-        for dx in range(-radius, radius + 1):
-            if math.sqrt(float(dx * dx + dz * dz)) <= float(radius) + 0.35:
-                coords.add((cx + dx, cz + dz))
-    return coords
+    return set(generate_visible_chunk_ring(center, radius))
 
 
 def _default_path(chunk_size: float) -> List[Tuple[float, float]]:
@@ -87,7 +77,7 @@ def _default_path(chunk_size: float) -> List[Tuple[float, float]]:
 
 def _center_from_position(point: Tuple[float, float], chunk_size: float) -> ChunkCoord:
     x, z = point
-    return (_chunk_coord(x, chunk_size), _chunk_coord(z, chunk_size))
+    return (chunk_coord(x, chunk_size), chunk_coord(z, chunk_size))
 
 
 def run_vulkan_chunk_streaming_probe(

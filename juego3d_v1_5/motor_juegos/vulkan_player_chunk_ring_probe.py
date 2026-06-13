@@ -13,8 +13,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Tuple
-import math
 import time
+from motor_juegos.chunk_math import chunk_coord, generate_square_chunk_ring, passes_chunk_ring_cull
 
 
 ChunkCoord = Tuple[int, int]
@@ -54,24 +54,12 @@ class VulkanPlayerChunkRingStatus:
         return asdict(self)
 
 
-def _chunk_coord(value: float, chunk_size: float) -> int:
-    return int(math.floor(float(value) / max(1.0, float(chunk_size))))
-
-
 def _generate_centered_ring(center: ChunkCoord, radius: int) -> List[ChunkCoord]:
-    cx, cz = center
-    radius = max(1, int(radius))
-    coords: List[ChunkCoord] = []
-    for dz in range(-radius, radius + 1):
-        for dx in range(-radius, radius + 1):
-            coords.append((cx + dx, cz + dz))
-    return sorted(coords, key=lambda c: (abs(c[0] - cx) + abs(c[1] - cz), c[1], c[0]))
+    return generate_square_chunk_ring(center, radius)
 
 
 def _passes_center_culling(coord: ChunkCoord, center: ChunkCoord, radius: int) -> bool:
-    dx = coord[0] - center[0]
-    dz = coord[1] - center[1]
-    return math.sqrt(float(dx * dx + dz * dz)) <= float(radius) + 0.35
+    return passes_chunk_ring_cull(coord, center, radius)
 
 
 def run_vulkan_player_chunk_ring_probe(
@@ -111,8 +99,8 @@ def run_vulkan_player_chunk_ring_probe(
 
         status.player_position_ready = True
         status.camera_position_ready = True
-        status.center_chunk_x = _chunk_coord(status.camera_x, status.chunk_size)
-        status.center_chunk_z = _chunk_coord(status.camera_z, status.chunk_size)
+        status.center_chunk_x = chunk_coord(status.camera_x, status.chunk_size)
+        status.center_chunk_z = chunk_coord(status.camera_z, status.chunk_size)
         center = (status.center_chunk_x, status.center_chunk_z)
         status.center_chunk_ready = True
 

@@ -179,3 +179,8 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# JUEGO 1.6 - configuracion local del usuario
+JUEGO_PYTHON_LOCAL.bat
+juego3d_v1_5/logs/
+juego3d_v1_5/previews/

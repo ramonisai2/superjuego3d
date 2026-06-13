@@ -106,6 +106,28 @@ class RenderFrameGraph:
     def packet_count(self) -> int:
         return sum(len(p.packets) for p in self.passes.values())
 
+    def _accumulate_visible_chunk_cost(self, render_stats: Dict[str, int], handle: Any, lod: str) -> None:
+        desc = getattr(handle, "desc", None)
+        if desc is None:
+            return
+        try:
+            vertices = int(getattr(desc, "vertex_count", 0) or 0)
+            indices = int(getattr(desc, "index_count", 0) or 0)
+            bytes_size = int(getattr(desc, "byte_size", 0) or 0)
+            batches = int(getattr(desc, "material_batches", 0) or 0)
+        except Exception:
+            return
+        render_stats["visible_chunk_vertices"] = render_stats.get("visible_chunk_vertices", 0) + vertices
+        render_stats["visible_chunk_indices"] = render_stats.get("visible_chunk_indices", 0) + indices
+        render_stats["visible_chunk_bytes"] = render_stats.get("visible_chunk_bytes", 0) + bytes_size
+        render_stats["visible_chunk_batches"] = render_stats.get("visible_chunk_batches", 0) + batches
+        if lod == "detail":
+            render_stats["visible_detail_vertices"] = render_stats.get("visible_detail_vertices", 0) + vertices
+            render_stats["visible_detail_bytes"] = render_stats.get("visible_detail_bytes", 0) + bytes_size
+        else:
+            render_stats["visible_lod_vertices"] = render_stats.get("visible_lod_vertices", 0) + vertices
+            render_stats["visible_lod_bytes"] = render_stats.get("visible_lod_bytes", 0) + bytes_size
+
     def execute(self, render_backend, render_stats: Dict[str, int]) -> None:
         """Ejecuta los pases del frame con el backend actual.
 
@@ -117,6 +139,7 @@ class RenderFrameGraph:
             for packet in pass_obj.packets:
                 if packet.kind == "chunk":
                     render_backend.draw_compiled_chunk(packet.payload)
+                    self._accumulate_visible_chunk_cost(render_stats, packet.payload, packet.lod)
                     if packet.lod == "detail":
                         render_stats["chunks_detalle"] = render_stats.get("chunks_detalle", 0) + 1
                     else:

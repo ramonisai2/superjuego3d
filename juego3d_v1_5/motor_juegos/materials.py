@@ -29,6 +29,7 @@ MATERIALS: Dict[str, MaterialInfo] = {
     "tree_trunk": MaterialInfo("tree_trunk", sort_order=30, debug_color=(0.34, 0.22, 0.12, 1.0), notes="Troncos"),
     "tree_leaf": MaterialInfo("tree_leaf", sort_order=40, debug_color=(0.10, 0.38, 0.13, 1.0), notes="Hojas/copas/musgo"),
     "plant": MaterialInfo("plant", sort_order=50, double_sided=True, debug_color=(0.20, 0.55, 0.15, 1.0), notes="Pasto, flores, cactus, arbustos"),
+    "obj": MaterialInfo("obj", sort_order=70, debug_color=(0.62, 0.62, 0.68, 1.0), notes="Modelos OBJ importados"),
     "water": MaterialInfo("water", sort_order=900, blend=True, depth_write=False, double_sided=True, alpha=0.34, debug_color=(0.22, 0.55, 0.75, 0.34), notes="Agua translucida"),
     "shadow": MaterialInfo("shadow", sort_order=910, blend=True, depth_write=False, double_sided=True, alpha=0.12, debug_color=(0.03, 0.03, 0.04, 0.12), notes="Sombras planas baratas"),
     "default": MaterialInfo("default", sort_order=100, debug_color=(1.0, 1.0, 1.0, 1.0), notes="Material fallback"),
