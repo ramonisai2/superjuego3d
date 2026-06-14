@@ -50,7 +50,7 @@ def render_runtime_hud(
             24, 132, (190, 235, 210)
         )
         r2d.draw_text_2d(
-            f"AutoQuality: {render_stats.get('adaptive_quality_state','OK')} escala:{render_stats.get('adaptive_quality_scale',1.0):.2f} fpsAvg:{render_stats.get('adaptive_quality_fps_avg',0.0):.1f} chunk:{render_stats.get('adaptive_chunk_distance',0)} detail:{render_stats.get('adaptive_detail_chunk_distance',0)}/{render_stats.get('adaptive_detail_near_keep',0)} fog:{render_stats.get('adaptive_fog_end',0)} stream:{render_stats.get('adaptive_stream_interval_ms',0)}ms lod:{render_stats.get('adaptive_stream_lod_limit',0)}",
+            f"AutoQuality: {render_stats.get('adaptive_quality_state','OK')} rescue:{render_stats.get('frame_rescue_label','OK')} nivel:{render_stats.get('frame_rescue_level',0)} escala:{render_stats.get('adaptive_quality_scale',1.0):.2f} fpsAvg:{render_stats.get('adaptive_quality_fps_avg',0.0):.1f} chunk:{render_stats.get('adaptive_chunk_distance',0)} detail:{render_stats.get('adaptive_detail_chunk_distance',0)}/{render_stats.get('adaptive_detail_near_keep',0)} fog:{render_stats.get('adaptive_fog_end',0)} stream:{render_stats.get('adaptive_stream_interval_ms',0)}ms lod:{render_stats.get('adaptive_stream_lod_limit',0)}",
             24, 264, (180, 235, 180)
         )
         planes = render_stats.get("world_detail_planes", (0, 0, 0, 0, 0))
@@ -58,6 +58,10 @@ def render_runtime_hud(
         r2d.draw_text_2d(
             f"WorldPreset: {render_stats.get('world_detail_preset','BALANCED')} dens G:{render_stats.get('world_detail_grass',0):.2f} D:{render_stats.get('world_detail_deco',0):.2f} R:{render_stats.get('world_detail_rock',0):.2f} planes g/d/l/t/r:{planes[0]}/{planes[1]}/{planes[2]}/{planes[3]}/{planes[4]} res F/M/P:{amounts[0]}/{amounts[1]}/{amounts[2]}",
             24, 286, (205, 225, 255)
+        )
+        r2d.draw_text_2d(
+            f"FarHorizon: rescue:{render_stats.get('frame_rescue_label','OK')} on:{render_stats.get('far_terrain_enabled',0)} tiles:{render_stats.get('far_terrain_tiles_visible',0)}/{render_stats.get('far_terrain_max_visible',0)} built:{render_stats.get('far_terrain_tiles_built',0)} cache:{render_stats.get('far_terrain_tiles_cached',0)} tile:{render_stats.get('far_terrain_tile_size',0)} sub:{render_stats.get('far_terrain_subdivisions',0)} r:{render_stats.get('far_terrain_radius',0)} h:{render_stats.get('far_terrain_height_scale',0):.2f} sky:{render_stats.get('sky_biome_hint','none')} tint:{render_stats.get('sky_biome_tint_strength',0):.2f}/{render_stats.get('sky_world_tint_alpha',0):.2f}",
+            24, 308, (180, 230, 230)
         )
         if render_stats.get("perf_frame"):
             r2d.draw_text_2d(

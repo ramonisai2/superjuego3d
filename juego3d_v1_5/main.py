@@ -82,8 +82,12 @@ adaptive_quality = {
     "scale": 1.0,
     "state": "OK",
     "fps_avg": 0.0,
+    "fps_now": 0.0,
     "low_time": 0.0,
     "high_time": 0.0,
+    "frame_index": 0,
+    "rescue_level": 0,
+    "rescue_label": "OK",
 }
 adaptive_streaming = {
     "enabled": ADAPTIVE_STREAMING_ENABLED,
@@ -106,6 +110,9 @@ adaptive_runtime = AdaptiveQualityRuntime(
     fps_high=ADAPTIVE_FPS_HIGH,
     adaptive_chunk_render_enabled=ADAPTIVE_CHUNK_RENDER_ENABLED,
     adaptive_streaming_enabled=ADAPTIVE_STREAMING_ENABLED,
+    frame_rescue_enabled=ADAPTIVE_RESCUE_ENABLED,
+    rescue_fps=ADAPTIVE_RESCUE_FPS,
+    emergency_fps=ADAPTIVE_EMERGENCY_FPS,
 )
 stream_bridge_stats = {
     "enabled": int(ENABLE_STREAM_BRIDGE_SAFE),
@@ -476,6 +483,7 @@ def render_3d():
         remnant_render_distance=REMNANT_RENDER_DISTANCE,
         entity_render_distance=ENTITY_RENDER_DISTANCE,
         entity_label_distance=ENTITY_LABEL_DISTANCE,
+        seed=SEMILLA_MUNDO,
     )
 
 def render_2d():

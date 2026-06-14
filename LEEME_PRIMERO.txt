@@ -9,6 +9,7 @@ Desde ahi puedes:
 - Verificar Python y dependencias.
 - Comparar LOW / BALANCED / HIGH.
 - Previsualizar terreno.
+- Previsualizar vegetacion por bioma.
 - Generar log de movimiento si hay bajones de FPS.
 - Probar el importador OBJ del motor.
 - Auditar valores repetidos que podrian reciclarse.
@@ -33,7 +34,7 @@ Notas:
 - La auditoria de valores ayuda a reciclar constantes por significado, no por coincidencia.
 - La matematica de anillos de chunks ya vive en un modulo comun para evitar valores magicos repetidos.
 - Las variables de entorno de tuning se leen con helpers comunes para evitar conversiones duplicadas.
-- La opcion 15 ayuda a detectar archivos de mas de 1000 lineas y planear divisiones seguras.
+- La opcion 16 ayuda a detectar archivos de mas de 1000 lineas y planear divisiones seguras.
 - main_config.py contiene presets y constantes que antes vivian dentro de main.py.
 - main_adaptive_quality.py contiene calidad adaptativa, distancias de render, fog y limites LOD.
 - main_resources.py contiene indices de piedra/madera/fibra, colisiones de roca y recoleccion basica.
@@ -49,6 +50,43 @@ Notas:
 - main_chunk_runtime.py contiene streaming, LOD, worker y compilacion de chunks.
 - motor_juegos\world_detail.py contiene presets/densidades de detalle visual del mundo.
 - motor_juegos\chunk_mesh_builder.py convierte terreno, rocas, plantas y arboles a ChunkMeshData.
+- motor_juegos\biomes.py contiene el catalogo de arboles y sus biomas favoritos.
+- Los rangos de arbol en biomes.py ahora reparten mejor roble, pino, sauce, abedul y cipres.
+- environment.py agrega sotobosque por bioma; chunk_mesh_builder.py dibuja juncos, helechos, hierba alta, flor azul y maleza oscura.
+- environment.py tambien reparte hongos, arbustos verdes y arbustos secos como detalle barato de suelo.
+- motor_juegos\environment_legacy_draw.py contiene rocas y decoraciones OpenGL legacy del terreno.
+- motor_juegos\far_terrain_lod.py dibuja relieve lejano real con el mismo seed, sin colision ni recursos.
+- motor_juegos\far_terrain_lod.py hunde suavemente el horizonte lejano para sensacion de planeta pequeno.
+- motor_juegos\far_terrain_lod.py usa parches lejanos grandes para no pagar el costo de mas chunks vivos.
+- motor_juegos\far_terrain_lod.py exagera levemente el relieve lejano para que el horizonte se lea desde lejos.
+- biomes.py agrega llanuras jugables dentro del relieve procedural para mezclar accidentes geograficos con zonas comodas.
+- El HUD debug y los logs de preset muestran farTiles/farBuilt para medir el costo del horizonte.
+- game\ui.py usa paneles HUD redondeados y semitransparentes.
+- environment.py permite que lagos profundos se vean mas planos sin hacer flotar escorrentias.
+- environment.py agrega una lamina impostora sobre lagos profundos para reducir glitches/cuadricula visual.
+- motor_juegos\forest_impostor_lod.py dibuja masa lejana de bosque oscuro segun seed, humedad y bioma.
+- motor_juegos\atmospheric_sky.py contiene ciclo dia/noche, nubes baratas, sol, luna, estrellas y fog atmosferico.
+- atmospheric_sky.py usa cielo segmentado y nubes de flujo lineal para evitar esquinas claras y nubes orbitando la camara.
+- motor_juegos\atmospheric_sky.py puede tintar cielo/fog lejanos segun bioma distante.
+- Las nubes atmosfericas estan implementadas y ahora son mas visibles por defecto.
+- El tinte de cielo por bioma distante se muestrea por intervalo para evitar calculo procedural cada frame.
+- Mejorar agua queda en timeline visual: lago/rio/charco/escorrentia deben leerse diferente.
+- motor_juegos\vegetation_preview.py genera un mapa 2D offline de arboles y sotobosque por bioma.
+- La preview de vegetacion tambien informa cobertura total, arboles, sotobosque y si se ve vacio/sano/saturado.
+- La preview de vegetacion guarda juego3d_v1_5\previews\vegetation_biomes_report.txt para comparar cambios.
+- El reporte de vegetacion compara varias semillas para evitar balancear con un solo mundo.
+- ESTADO_RAPIDO_JUEGO.bat muestra la cobertura de vegetacion si ese reporte ya existe.
+- ESTADO_RAPIDO_JUEGO.bat muestra estabilidad multisemilla de vegetacion si el reporte la incluye.
+- El reporte de vegetacion guarda la etapa que lo genero y estado rapido avisa si esta actualizado.
+- ESTADO_RAPIDO_JUEGO.bat tambien muestra la etapa actual desde motor_juegos\version_info.py.
+- ANALIZAR_PRESETS_GRAFICOS.bat puede avisar si las caidas coinciden con construccion de horizonte lejano.
+- Auto ahorro inteligente reduce trabajo lejano bajo 30 FPS sin congelar jugador, camara, entidades cercanas ni HUD.
+- Los logs de preset ahora guardan rescue/rescueLevel para saber cuando entra ese modo.
+- El rescate ahora entra antes y suaviza visualmente horizonte/bosques lejanos para simular blur barato.
+- La niebla visual se aflojo un poco sin aumentar la distancia real de chunks.
+- El fondo lejano bloquea su set visual mientras no cambias de zona para evitar parpadeo estando quieto.
+- Los impostores de bosque ahora empiezan mas lejos para evitar arboles fantasma cerca del jugador.
+- El ciclo dia/noche aplica un tinte global barato al mundo: noche azulada y atardecer rojizo.
 - game\entity_update_budget.py contiene reglas de actualizacion lejana/cercana de NPCs y enemigos.
 - game\npc_identity.py contiene nombres, profesiones, perfiles, presets visuales e IDs estables de NPCs.
 - game\npc_memory.py contiene memoria, confianza, notas e import/export de NPCs.

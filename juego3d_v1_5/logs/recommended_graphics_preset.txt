@@ -1,10 +1,10 @@
 preset=balanced
 confidence=low
-samples=219
-ignored_empty_startup_samples=9
-best_preset=balanced
+samples=549
+ignored_empty_startup_samples=18
+best_preset=high
 ready_presets=balanced,high
 missing_presets=low
 severe_drop_presets=balanced,high
 bottleneck_hint=Probable render/LOD: los tirones coinciden con muchos vertices visibles o chunks LOD, sin uploads altos. Revisar distancia, impostores y detalle lejano.
-reason=Mejor candidato parcial: balanced. Faltan muestras suficientes de: low.
+reason=Mejor candidato parcial: high. Faltan muestras suficientes de: low.

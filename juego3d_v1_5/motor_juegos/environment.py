@@ -7,8 +7,10 @@ import numpy as np
 import math
 from . import biomes
 from .env_config import read_env_float, read_env_text
+from .atmospheric_sky import draw_atmospheric_skybox
 from .terrain_noise_experiment import calculate_fast_noise_terrain_properties, calculate_fast_noise_water_properties
 from .chunk_mesh_builder import build_chunk_mesh_data
+from .environment_legacy_draw import draw_decorations, draw_optimized_rock
 from .materials import get_material
 from .gpu_resources import NeutralBufferDesc, NeutralMeshHandle
 
@@ -29,11 +31,13 @@ from .world_detail import (
 
 def _water_surface_y(raw_level, ground_y):
     """
-    Mantiene la lamina de agua pegada al terreno visual.
+    Mantiene escorrentia pegada al terreno, pero deja que lagos profundos lean
+    como una superficie mas plana.
 
     Antes el fondo visual del lago podia bajarse mas que el nivel procedural del
-    agua, dejando placas flotando. La superficie ahora no puede quedar mas que
-    un margen minimo por encima del suelo local.
+    agua, dejando placas flotando. Despues lo pegamos demasiado al suelo y el
+    lago parecia agua bajando por una ladera. Esta version distingue por
+    profundidad: charcos/rios de meseta siguen al terreno; lagos recuperan plano.
     """
     try:
         raw = float(raw_level)
@@ -42,13 +46,18 @@ def _water_surface_y(raw_level, ground_y):
         return float(raw_level)
     if not np.isfinite(raw) or not np.isfinite(ground):
         return raw
-    max_above = read_env_float(
+    shallow_above = read_env_float(
         "JUEGO_WATER_SURFACE_MAX_ABOVE_GROUND",
         WATER_SURFACE_MAX_ABOVE_GROUND,
         -0.04,
         0.10,
     )
-    return min(raw + 0.004, ground + max_above)
+    lake_above = read_env_float("JUEGO_WATER_LAKE_MAX_ABOVE_GROUND", 1.10, 0.10, 3.0)
+    flat_start = read_env_float("JUEGO_WATER_LAKE_FLAT_DEPTH", 0.72, 0.12, 3.0)
+    depth_hint = max(0.0, raw - ground)
+    lake_t = max(0.0, min(1.0, (depth_hint - flat_start) / max(0.10, flat_start)))
+    allowed_above = shallow_above * (1.0 - lake_t) + min(lake_above, max(shallow_above, depth_hint)) * lake_t
+    return min(raw + 0.004, ground + allowed_above)
 
 def _terrain_mode():
     return read_env_text("JUEGO_TERRAIN_MODE", "current", lower=True) or "current"
@@ -112,6 +121,7 @@ def calculate_chunk_data_background(cx, cz, size, subdivisions, seed):
         _height_cache[(cx, cz)] = h_map
 
     quads_data, grass_data, rock_data, deco_data, water_data = [], [], [], [], []
+    lake_impostor_cells = []
     np.random.seed(seed + cx * 73 + cz * 37)
 
     for i in range(subdivisions):
@@ -183,13 +193,15 @@ def calculate_chunk_data_background(cx, cz, size, subdivisions, seed):
                 # tener altura distinta. En una misma celda usamos sus 4 esquinas para evitar
                 # placas gigantes perfectamente planas cuando cruza una transicion.
                 wy = _water_surface_y(avg_wlevel, avg_h)
-                # Leve solape para que no se vea una costura negra entre chunks/celdas.
-                overlap = step * 0.012
+                # Solape minimo: demasiado solape oscurece la cuadricula del agua translucida.
+                overlap = step * read_env_float("JUEGO_WATER_CELL_OVERLAP", 0.002, 0.0, 0.020)
                 water_data.append((wcol,
                                    (x1 - overlap, wy, z1 - overlap),
                                    (x2 + overlap, wy, z1 - overlap),
                                    (x2 + overlap, wy, z2 + overlap),
                                    (x1 - overlap, wy, z2 + overlap)))
+                if avg_depth >= read_env_float("JUEGO_WATER_IMPOSTOR_MIN_DEPTH", 0.42, 0.05, 3.0):
+                    lake_impostor_cells.append((x1, x2, z1, z2, wy, wcol))
 
             # Escombros cueva
             if es_cueva and np.random.rand()<0.2:
@@ -254,9 +266,47 @@ def calculate_chunk_data_background(cx, cz, size, subdivisions, seed):
                 h1 = h01*(1-tx)+h11*tx
                 suelo = h0*(1-tz)+h1*tz
                 deco_variant = np.random.choice(["rojo","amarillo"]) if local_deco_type=="flores" else "normal"
-                if local_deco_type in ("arbol_bosque", "arbol_pantano") and es_orilla and np.random.rand() < 0.25:
+                if local_deco_type in ("arbol_bosque", "arbol_pantano", "arbol_roble", "arbol_pino", "arbol_abedul", "arbol_sauce", "arbol_cipres") and es_orilla and np.random.rand() < 0.25:
                     deco_variant = "alto"
                 deco_data.append((local_deco_type, rx, suelo, rz, deco_variant))
+
+            # Sotobosque por bioma: piezas bajas, baratas y dependientes del terreno.
+            if has_grass and (not es_agua) and (not es_cueva):
+                understory_type = None
+                understory_chance = 0.0
+                if es_orilla or (avg_m > 0.74 and avg_h < 8.5):
+                    understory_type = "junco"
+                    understory_chance = 0.030 + avg_m * 0.030
+                elif avg_m > 0.74 and avg_temp < 0.62 and avg_rareza > 0.10:
+                    understory_type = "hongo"
+                    understory_chance = 0.012 + avg_m * 0.014
+                elif avg_m > 0.70 and avg_temp < 0.72:
+                    understory_type = "helecho"
+                    understory_chance = 0.026 + avg_m * 0.024
+                elif avg_m > 0.64 and avg_temp < 0.58 and avg_rareza < -0.18:
+                    understory_type = "maleza_oscura"
+                    understory_chance = 0.024 + min(0.025, -avg_rareza * 0.020)
+                elif 0.48 < avg_m < 0.78 and avg_temp > 0.28 and avg_rareza > 0.24:
+                    understory_type = "arbusto_verde"
+                    understory_chance = 0.010 + avg_m * 0.012
+                elif avg_m < 0.30 and avg_temp > 0.46 and avg_h < 13.0:
+                    understory_type = "arbusto_seco"
+                    understory_chance = 0.010 + (0.30 - avg_m) * 0.040
+                elif 0.40 < avg_m < 0.72 and avg_temp < 0.66 and avg_rareza < 0.18:
+                    understory_type = "flor_azul"
+                    understory_chance = 0.018 + avg_m * 0.014
+                elif avg_m > 0.34:
+                    understory_type = "hierba_alta"
+                    understory_chance = 0.018 + avg_m * 0.012
+                if understory_type and np.random.rand() < (understory_chance * detail_density["deco"]):
+                    rx = np.random.uniform(x1,x2)
+                    rz = np.random.uniform(z1,z2)
+                    tx = (rx-x1)/step
+                    tz = (rz-z1)/step
+                    h0 = h00*(1-tx)+h10*tx
+                    h1 = h01*(1-tx)+h11*tx
+                    suelo = h0*(1-tz)+h1*tz
+                    deco_data.append((understory_type, rx, suelo, rz, "normal"))
 
             # Flores, arbustos y muy pocos árboles alrededor del lago para crear sensacion de oasis.
             if es_orilla:
@@ -269,7 +319,7 @@ def calculate_chunk_data_background(cx, cz, size, subdivisions, seed):
                     h0 = h00*(1-tx)+h10*tx
                     h1 = h01*(1-tx)+h11*tx
                     suelo = h0*(1-tz)+h1*tz
-                    tree_type = "arbol_pantano" if avg_m > 0.62 else "arbol_bosque"
+                    tree_type = "arbol_sauce" if avg_m > 0.62 else "arbol_roble"
                     deco_data.append((tree_type, rx, suelo, rz, "normal"))
                 if np.random.rand() < ((0.08 + oasis_factor * 0.12) * detail_density["deco"]):
                     rx = np.random.uniform(x1,x2)
@@ -290,7 +340,36 @@ def calculate_chunk_data_background(cx, cz, size, subdivisions, seed):
                     suelo = h0*(1-tz)+h1*tz
                     deco_data.append(("arbusto_verde", rx, suelo, rz, "normal"))
 
+    _append_lake_impostor(water_data, lake_impostor_cells, step)
     return cx, cz, quads_data, grass_data, rock_data, deco_data, water_data, h_map
+
+
+def _append_lake_impostor(water_data, cells, step):
+    if not cells:
+        return
+    min_cells = int(read_env_float("JUEGO_WATER_IMPOSTOR_MIN_CELLS", 10.0, 3.0, 120.0))
+    if len(cells) < min_cells:
+        return
+    x0 = min(item[0] for item in cells)
+    x1 = max(item[1] for item in cells)
+    z0 = min(item[2] for item in cells)
+    z1 = max(item[3] for item in cells)
+    bbox_area = max(0.001, (x1 - x0) * (z1 - z0))
+    fill = (len(cells) * float(step) * float(step)) / bbox_area
+    min_fill = read_env_float("JUEGO_WATER_IMPOSTOR_MIN_FILL", 0.24, 0.05, 0.95)
+    if fill < min_fill:
+        return
+    avg_y = sum(item[4] for item in cells) / len(cells)
+    avg_col = [sum(item[5][idx] for item in cells) / len(cells) for idx in range(3)]
+    inset = float(step) * read_env_float("JUEGO_WATER_IMPOSTOR_INSET", 0.35, -1.0, 2.0)
+    water_data.append((
+        "lake_impostor",
+        avg_col,
+        (x0 + inset, avg_y + 0.018, z0 + inset),
+        (x1 - inset, avg_y + 0.018, z0 + inset),
+        (x1 - inset, avg_y + 0.018, z1 - inset),
+        (x0 + inset, avg_y + 0.018, z1 - inset),
+    ))
 
 def terrain_worker_process(pipe, size, sub, seed):
     while True:
@@ -345,9 +424,9 @@ def build_gpu_list_from_mesh_data(mesh_data):
 
     # Respaldo temporal: cualquier decoracion compleja aun usa el renderer legacy.
     for r in mesh_data.legacy_rocks:
-        _draw_optimized_rock(*r)
+        draw_optimized_rock(*r)
     for d in mesh_data.legacy_deco:
-        _draw_decorations(*d)
+        draw_decorations(*d)
 
     for batch in ordered_batches:
         if getattr(batch, "blend", False) or getattr(batch, "material", "") in ("water", "shadow"):
@@ -361,256 +440,6 @@ def build_gpu_list_from_data(quads, grass, rocks, deco, water=None):
     # Compatibilidad con codigo viejo: convierte a MeshData y luego sube a OpenGL.
     mesh = build_chunk_mesh_data(0, 0, quads, grass, rocks, deco, water or [], size=100, lod="legacy")
     return build_gpu_list_from_mesh_data(mesh)
-
-def _draw_optimized_rock(bx, base_y, bz, sx, sy, sz, col):
-    # Roca prismática simple pero irregular, con ligera teselación y tapa no perfectamente plana.
-    c_top = [min(1,c*1.12) for c in col]
-    c_s1 = [c*0.92 for c in col]
-    c_s2 = [c*0.78 for c in col]
-    c_s3 = [c*0.68 for c in col]
-    hx, hz = sx/2, sz/2
-
-    # Variación determinista basada en la posición para romper el aspecto de cubo perfecto.
-    seed = math.sin(bx * 12.9898 + bz * 78.233) * 43758.5453
-    frac = seed - math.floor(seed)
-    frac2 = (seed * 1.371) - math.floor(seed * 1.371)
-    frac3 = (seed * 1.917) - math.floor(seed * 1.917)
-    frac4 = (seed * 2.231) - math.floor(seed * 2.231)
-    inset = 0.10 + 0.10 * frac
-    lift0 = sy * (0.90 + 0.10 * frac2)
-    lift1 = sy * (0.88 + 0.14 * frac3)
-    lift2 = sy * (0.92 + 0.08 * frac4)
-    lift3 = sy * (0.86 + 0.12 * frac)
-
-    # Base.
-    b0 = [bx-hx, base_y, bz-hz]
-    b1 = [bx+hx, base_y, bz-hz]
-    b2 = [bx+hx, base_y, bz+hz]
-    b3 = [bx-hx, base_y, bz+hz]
-
-    # Parte alta ligeramente estrechada y desplazada.
-    t0 = [bx-hx*(1.0-inset), base_y + lift0, bz-hz*(1.0-0.08-frac*0.04)]
-    t1 = [bx+hx*(1.0-inset*0.8), base_y + lift1, bz-hz*(1.0-inset)]
-    t2 = [bx+hx*(1.0-0.06-frac2*0.05), base_y + lift2, bz+hz*(1.0-inset*0.9)]
-    t3 = [bx-hx*(1.0-inset), base_y + lift3, bz+hz*(1.0-0.05-frac3*0.05)]
-
-    # Pico superior muy sutil para romper la tapa plana.
-    peak = [bx + (frac-0.5)*hx*0.25, base_y + sy * (1.02 + 0.08 * frac2), bz + (frac3-0.5)*hz*0.25]
-
-    glBegin(GL_QUADS)
-    # Lados
-    glColor3fv(c_s1); glVertex3fv(b0); glVertex3fv(b1); glVertex3fv(t1); glVertex3fv(t0)
-    glColor3fv(c_s2); glVertex3fv(b1); glVertex3fv(b2); glVertex3fv(t2); glVertex3fv(t1)
-    glColor3fv(c_s3); glVertex3fv(b2); glVertex3fv(b3); glVertex3fv(t3); glVertex3fv(t2)
-    glColor3fv(c_s2); glVertex3fv(b3); glVertex3fv(b0); glVertex3fv(t0); glVertex3fv(t3)
-    glEnd()
-
-    # Tapa subdividida en 4 triángulos para dar una teselación muy básica.
-    glBegin(GL_TRIANGLES)
-    glColor3fv(c_top); glVertex3fv(t0); glVertex3fv(t1); glVertex3fv(peak)
-    glColor3fv(c_top); glVertex3fv(t1); glVertex3fv(t2); glVertex3fv(peak)
-    glColor3fv(c_top); glVertex3fv(t2); glVertex3fv(t3); glVertex3fv(peak)
-    glColor3fv(c_top); glVertex3fv(t3); glVertex3fv(t0); glVertex3fv(peak)
-    glEnd()
-
-
-
-
-
-def _draw_ground_shadow(cx, y, cz, sx, sz, alpha=0.10):
-    glEnable(GL_BLEND)
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-    glDepthMask(GL_FALSE)
-    glColor4f(0.02, 0.03, 0.02, alpha)
-    glBegin(GL_QUADS)
-    glVertex3f(cx - sx*0.5, y + 0.01, cz - sz*0.5)
-    glVertex3f(cx + sx*0.5, y + 0.01, cz - sz*0.5)
-    glVertex3f(cx + sx*0.5, y + 0.01, cz + sz*0.5)
-    glVertex3f(cx - sx*0.5, y + 0.01, cz + sz*0.5)
-    glEnd()
-    glDepthMask(GL_TRUE)
-    glDisable(GL_BLEND)
-
-def _draw_round_trunk(cx, base_y, cz, radius, height, col, segments=5):
-    """Tronco pseudo redondo con teselación muy básica."""
-    top_col = [min(1.0, c * 1.10) for c in col]
-    for i in range(segments):
-        a0 = (i / segments) * math.pi * 2.0
-        a1 = ((i + 1) / segments) * math.pi * 2.0
-        x0 = cx + math.cos(a0) * radius
-        z0 = cz + math.sin(a0) * radius
-        x1 = cx + math.cos(a1) * radius
-        z1 = cz + math.sin(a1) * radius
-        shade = 0.78 + 0.18 * ((i % 2) / 1.0)
-        side_col = [max(0.0, min(1.0, c * shade)) for c in col]
-        glBegin(GL_QUADS)
-        glColor3fv(side_col)
-        glVertex3f(x0, base_y, z0)
-        glVertex3f(x1, base_y, z1)
-        glVertex3f(x1, base_y + height, z1)
-        glVertex3f(x0, base_y + height, z0)
-        glEnd()
-    # Tapa superior sencilla en abanico
-    peak_y = base_y + height
-    glBegin(GL_TRIANGLES)
-    for i in range(segments):
-        a0 = (i / segments) * math.pi * 2.0
-        a1 = ((i + 1) / segments) * math.pi * 2.0
-        x0 = cx + math.cos(a0) * radius
-        z0 = cz + math.sin(a0) * radius
-        x1 = cx + math.cos(a1) * radius
-        z1 = cz + math.sin(a1) * radius
-        glColor3fv(top_col)
-        glVertex3f(cx, peak_y + radius * 0.06, cz)
-        glVertex3f(x0, peak_y, z0)
-        glVertex3f(x1, peak_y, z1)
-    glEnd()
-
-def _draw_decorations(d_type, dx, dy, dz, variant):
-    # Plantas pequeñas existentes
-    if d_type == "hongo":
-        _draw_optimized_rock(dx, dy, dz, 0.08,0.16,0.08,[0.9,0.9,0.9])
-        _draw_optimized_rock(dx, dy+0.1, dz, 0.24,0.08,0.24,[0.85,0.15,0.15])
-    elif d_type == "cactus":
-        _draw_optimized_rock(dx, dy, dz, 0.22, 1.6, 0.22, [0.13,0.48,0.16])
-        _draw_optimized_rock(dx+0.22, dy+0.65, dz, 0.18, 0.55, 0.18, [0.12,0.42,0.14])
-        _draw_optimized_rock(dx-0.20, dy+0.85, dz, 0.16, 0.45, 0.16, [0.12,0.42,0.14])
-    elif d_type == "cristal":
-        _draw_optimized_rock(dx, dy, dz, 0.22,0.7,0.22, [0,0.9,0.9])
-    elif d_type == "flores":
-        _draw_optimized_rock(dx, dy, dz, 0.04,0.3,0.04, [0.2,0.5,0.2])
-        col_f = [0.85,0.15,0.45] if variant=="rojo" else [0.9,0.8,0.1]
-        _draw_optimized_rock(dx, dy+0.15, dz, 0.14,0.06,0.14, col_f)
-    elif d_type == "arbusto_verde":
-        _draw_optimized_rock(dx, dy, dz, 0.55,0.36,0.55, [0.12,0.44,0.14])
-        _draw_optimized_rock(dx+0.22, dy+0.05, dz-0.10, 0.35,0.28,0.35, [0.10,0.38,0.12])
-    elif d_type == "arbusto_seco":
-        _draw_optimized_rock(dx, dy, dz, 0.45,0.35,0.45, [0.46,0.38,0.26])
-        _draw_optimized_rock(dx-0.18, dy+0.06, dz+0.12, 0.28,0.28,0.28, [0.38,0.30,0.18])
-    # Árboles con tronco pseudo redondo y copa de 6 cubos teselados.
-    elif d_type == "arbol_bosque":
-        _draw_ground_shadow(dx, dy, dz, 2.20, 2.05, 0.13)
-        trunk = [0.36, 0.23, 0.13]
-        leaf_main = [0.10, 0.38, 0.13]
-        leaf_dark = [0.07, 0.30, 0.09]
-        leaf_light = [0.13, 0.45, 0.16]
-        alto = 3.10 if variant == "alto" else 2.65
-        _draw_round_trunk(dx, dy, dz, 0.30, alto, trunk, segments=5)
-        top = dy + alto
-
-        # Conector central: evita que la copa parezca flotante.
-        _draw_optimized_rock(dx, top - 0.16, dz, 0.86, 0.66, 0.86, leaf_dark)
-
-        # Copa frondosa: bloques encimados y conectados.
-        _draw_optimized_rock(dx,       top + 0.28, dz,       1.34, 0.82, 1.24, leaf_main)
-        _draw_optimized_rock(dx+0.58,  top + 0.18, dz+0.04,  0.92, 0.66, 0.88, leaf_dark)
-        _draw_optimized_rock(dx-0.56,  top + 0.16, dz-0.05,  0.90, 0.64, 0.86, leaf_dark)
-        _draw_optimized_rock(dx+0.05,  top + 0.15, dz+0.58,  0.92, 0.66, 0.86, leaf_main)
-        _draw_optimized_rock(dx-0.05,  top + 0.13, dz-0.58,  0.90, 0.62, 0.84, leaf_main)
-        _draw_optimized_rock(dx,       top + 0.78, dz,       0.84, 0.56, 0.80, leaf_light)
-        _draw_optimized_rock(dx+0.30,  top + 0.68, dz-0.28,  0.62, 0.42, 0.58, leaf_light)
-    elif d_type == "arbol_pantano":
-        _draw_ground_shadow(dx, dy, dz, 2.00, 1.95, 0.14)
-        trunk = [0.22, 0.16, 0.10]
-        leaf_main = [0.12, 0.28, 0.12]
-        leaf_dark = [0.08, 0.20, 0.08]
-        leaf_sick = [0.18, 0.34, 0.12]
-        alto = 2.55
-        _draw_round_trunk(dx, dy, dz, 0.32, alto, trunk, segments=5)
-        top = dy + alto
-
-        # Copa baja y pesada, conectada al tronco.
-        _draw_optimized_rock(dx,       top - 0.16, dz,       0.88, 0.62, 0.84, leaf_dark)
-        _draw_optimized_rock(dx,       top + 0.18, dz,       1.24, 0.72, 1.14, leaf_main)
-        _draw_optimized_rock(dx+0.50,  top + 0.08, dz+0.10,  0.82, 0.56, 0.76, leaf_dark)
-        _draw_optimized_rock(dx-0.48,  top + 0.06, dz-0.08,  0.82, 0.56, 0.76, leaf_dark)
-        _draw_optimized_rock(dx,       top + 0.06, dz+0.52,  0.80, 0.54, 0.74, leaf_main)
-        _draw_optimized_rock(dx,       top + 0.04, dz-0.50,  0.78, 0.52, 0.72, leaf_main)
-        _draw_optimized_rock(dx,       top + 0.60, dz,       0.70, 0.44, 0.66, leaf_sick)
-
-        # Musgo/raíces colgantes.
-        _draw_optimized_rock(dx-0.28, dy+1.20, dz+0.22, 0.10, 0.95, 0.10, [0.10,0.20,0.09])
-        _draw_optimized_rock(dx+0.32, dy+1.05, dz-0.18, 0.09, 0.78, 0.09, [0.10,0.20,0.09])
-        _draw_optimized_rock(dx+0.08, dy+1.36, dz+0.34, 0.08, 0.68, 0.08, [0.12,0.23,0.10])
-    elif d_type == "arbol_seco":
-        _draw_ground_shadow(dx, dy, dz, 1.65, 1.55, 0.10)
-        trunk = [0.48, 0.36, 0.20]
-        alto = 2.45
-        _draw_round_trunk(dx, dy, dz, 0.24, alto, trunk, segments=7)
-        top = dy + alto
-        leaf = [0.56, 0.45, 0.20]
-        leaf_dark = [0.45, 0.34, 0.15]
-
-        # Árbol seco pero no vacío: copa quebrada conectada.
-        _draw_optimized_rock(dx,       top + 0.04, dz,       0.64, 0.34, 0.60, leaf_dark)
-        _draw_optimized_rock(dx,       top + 0.32, dz,       0.92, 0.44, 0.82, leaf)
-        _draw_optimized_rock(dx+0.48,  top + 0.20, dz,       0.52, 0.28, 0.42, leaf_dark)
-        _draw_optimized_rock(dx-0.46,  top + 0.18, dz,       0.48, 0.26, 0.40, leaf_dark)
-        _draw_optimized_rock(dx,       top + 0.16, dz+0.44,  0.48, 0.26, 0.40, leaf)
-        _draw_optimized_rock(dx,       top + 0.14, dz-0.42,  0.46, 0.24, 0.38, leaf)
-        _draw_optimized_rock(dx,       top + 0.64, dz,       0.46, 0.24, 0.40, [0.62,0.50,0.24])
-
-
-
-def _draw_water_surfaces(water_quads):
-    """
-    Superficies de lagos interiores.
-    FIX O: base transparente + reflejos blur baratos, sin texturas ni shaders.
-    """
-    if not water_quads:
-        return
-
-    glEnable(GL_BLEND)
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-    glDepthMask(GL_FALSE)
-
-    # Base del agua.
-    glBegin(GL_QUADS)
-    for col, v0, v1, v2, v3 in water_quads:
-        glColor4f(col[0], col[1], col[2], 0.38)
-        glVertex3f(*v0); glVertex3f(*v1); glVertex3f(*v2); glVertex3f(*v3)
-    glEnd()
-
-    # Reflejo blur muy barato: varias bandas grandes, suaves y transparentes.
-    # No es reflejo real; solo da vida al agua sin costo alto.
-    glBegin(GL_QUADS)
-    for idx, (col, v0, v1, v2, v3) in enumerate(water_quads):
-        if idx % 3 != 0:
-            continue
-        x_min = min(v0[0], v1[0], v2[0], v3[0])
-        x_max = max(v0[0], v1[0], v2[0], v3[0])
-        z_min = min(v0[2], v1[2], v2[2], v3[2])
-        z_max = max(v0[2], v1[2], v2[2], v3[2])
-        cx = (x_min + x_max) * 0.5
-        cz = (z_min + z_max) * 0.5
-        wy = (v0[1] + v1[1] + v2[1] + v3[1]) * 0.25 + 0.012
-        w = max(0.18, (x_max - x_min) * 0.36)
-        l = max(0.28, (z_max - z_min) * 0.78)
-        # Variacion determinista para que no se vea como patrón perfecto.
-        n = math.sin(cx * 12.9898 + cz * 78.233)
-        dx = 0.10 * n
-        dz = 0.05 * math.cos(cx * 4.7 + cz * 3.1)
-        glColor4f(0.80, 0.93, 1.00, 0.055)
-        glVertex3f(cx - w + dx, wy, cz - l + dz)
-        glVertex3f(cx + w + dx, wy, cz - l*0.55 + dz)
-        glVertex3f(cx + w*0.72 + dx, wy, cz + l + dz)
-        glVertex3f(cx - w*0.72 + dx, wy, cz + l*0.55 + dz)
-    glEnd()
-
-    # Tinte de borde muy sutil para unir visualmente celdas vecinas.
-    glBegin(GL_QUADS)
-    for idx, (col, v0, v1, v2, v3) in enumerate(water_quads):
-        if idx % 5 != 0:
-            continue
-        glColor4f(0.45, 0.75, 0.85, 0.035)
-        glVertex3f(v0[0], v0[1] + 0.018, v0[2])
-        glVertex3f(v1[0], v1[1] + 0.018, v1[2])
-        glVertex3f(v2[0], v2[1] + 0.018, v2[2])
-        glVertex3f(v3[0], v3[1] + 0.018, v3[2])
-    glEnd()
-
-    glDepthMask(GL_TRUE)
-    glDisable(GL_BLEND)
 
 
 def get_terrain_height_at(x, z, seed=1):
@@ -696,8 +525,9 @@ def get_world_context_at(x, z, seed=1, size=100, subdivisions=90):
         high_macro = float(high_macro[0, 0])
         mesa_strength, _ = biomes._mesa_field(gx1, gz1, seed)
         mesa_strength = float(mesa_strength[0, 0])
+        plain_strength = float(biomes._playable_plain_field(gx1, gz1, seed)[0, 0])
     except Exception:
-        lake_basin, low_macro, high_macro, mesa_strength = 0.0, 0.0, 0.0, 0.0
+        lake_basin, low_macro, high_macro, mesa_strength, plain_strength = 0.0, 0.0, 0.0, 0.0, 0.0
 
     if water:
         biome_name = "Lago"
@@ -739,6 +569,9 @@ def get_world_context_at(x, z, seed=1, size=100, subdivisions=90):
     elif lake_basin > 0.42 or low_macro > 0.24 or h < 5.7:
         feature = "Depresión/zona baja"
         layer = "Capa 1 baja/caliente"
+    elif plain_strength > 0.45:
+        feature = "Llanura jugable"
+        layer = "Capa 2 media/templada"
     else:
         feature = "Plano normal"
         layer = "Capa 2 media/templada"
@@ -758,36 +591,15 @@ def get_world_context_at(x, z, seed=1, size=100, subdivisions=90):
         "low_macro": low_macro,
         "high_macro": high_macro,
         "mesa_strength": mesa_strength,
+        "plain_strength": plain_strength,
         "rareza": rareza,
     }
 
 
 
 def draw_procedural_skybox(size=300.0):
-    """Cielo simple con gradiente, barato para OpenGL inmediato."""
-    glDisable(GL_DEPTH_TEST)
-    half = size * 0.5
-    y_low = -20.0
-    y_high = size * 0.45
-    horizon = [0.70, 0.86, 1.00]
-    zenith = [0.20, 0.36, 0.70]
-
-    glBegin(GL_QUADS)
-    # cuatro paredes de cielo, degradado vertical
-    for a0, a1 in ((0, math.pi/2), (math.pi/2, math.pi), (math.pi, math.pi*1.5), (math.pi*1.5, math.pi*2)):
-        x0, z0 = math.cos(a0) * half, math.sin(a0) * half
-        x1, z1 = math.cos(a1) * half, math.sin(a1) * half
-        glColor3fv(horizon); glVertex3f(x0, y_low, z0); glVertex3f(x1, y_low, z1)
-        glColor3fv(zenith);  glVertex3f(x1, y_high, z1); glVertex3f(x0, y_high, z0)
-    glEnd()
-    glBegin(GL_TRIANGLES)
-    for a0, a1 in ((0, math.pi/2), (math.pi/2, math.pi), (math.pi, math.pi*1.5), (math.pi*1.5, math.pi*2)):
-        x0, z0 = math.cos(a0) * half, math.sin(a0) * half
-        x1, z1 = math.cos(a1) * half, math.sin(a1) * half
-        glColor3fv(zenith); glVertex3f(0.0, y_high + 40.0, 0.0)
-        glVertex3f(x0, y_high, z0); glVertex3f(x1, y_high, z1)
-    glEnd()
-    glEnable(GL_DEPTH_TEST)
+    """Fachada estable para el backend OpenGL actual."""
+    draw_atmospheric_skybox(size=float(size))
 
 
 
@@ -960,3 +772,4 @@ def clean_cache_for_chunk(cx, cz):
     global _height_cache
     if (cx, cz) in _height_cache:
         del _height_cache[(cx, cz)]
+

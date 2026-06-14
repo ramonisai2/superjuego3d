@@ -1,10 +1,48 @@
 RUTA DE TRABAJO - HOY Y MANANA
 
 Estado actual:
-- Etapa actual: Stage39 T - MAIN CHUNK RUNTIME MODULE.
+- Etapa actual: Stage41 A - DISTANT IMPOSTOR RING WORLD TINT.
 - Modo recomendado para jugar/probar: INICIO_JUEGO.bat.
 - Vulkan sigue experimental. No usarlo como modo principal todavia.
 - Metodo de terreno default: current.
+- La distancia de vision de chunks volvio a radios estables; el horizonte extra se resuelve con parches lejanos baratos.
+- environment.py bajo de 962 a 714 lineas; rocas/decoraciones legacy viven en motor_juegos\environment_legacy_draw.py.
+- El horizonte ahora puede mostrar relieve lejano real desde motor_juegos\far_terrain_lod.py.
+- El horizonte lejano se hunde suavemente para evitar la sensacion de mesa infinita.
+- Los parches lejanos son mas grandes y simples para evitar muchas baldosas pequenas fuera del area jugable.
+- El HUD debug y el log de presets ahora muestran farTiles/farBuilt para medir si esos parches afectan FPS.
+- Los parches lejanos ahora tienen mas escala vertical, menos haze y mas radio visual para que se noten.
+- El terreno agrega llanuras jugables por algoritmo para tener accidentes geograficos sin volver incomodo todo el suelo.
+- Los bosques lejanos usan impostores oscuros generados por bioma desde motor_juegos\forest_impostor_lod.py.
+- Los arboles cercanos ahora tienen 5 familias con biomas favoritos: roble, pino, abedul, sauce y cipres.
+- Abedul, cipres y sauce tienen rangos mas visibles sin quitar al roble como arbol comun.
+- El suelo tiene sotobosque por bioma: juncos, helechos, hierba alta, flor azul y maleza oscura.
+- El suelo tambien puede usar hongos, arbustos verdes y arbustos secos segun humedad/calor/rareza.
+- La distribucion de vegetacion puede revisarse offline con PREVISUALIZAR_VEGETACION_BIOMAS.bat.
+- La preview de vegetacion ahora informa cobertura total, arboles, sotobosque y lectura vacio/sano/saturado.
+- La preview de vegetacion guarda un reporte txt persistente para comparar etapas.
+- El reporte de vegetacion compara varias semillas para detectar balances accidentales.
+- El estado rapido muestra cobertura de vegetacion cuando existe vegetation_biomes_report.txt.
+- El estado rapido muestra estabilidad multisemilla y rango de cobertura de vegetacion.
+- El estado rapido avisa si el reporte de vegetacion fue generado en la etapa actual.
+- El estado rapido muestra la etapa actual, subtitulo y descripcion desde version_info.py.
+- El cielo/fog puede tomar un tinte leve del bioma lejano que mira la camara.
+- El tinte por bioma lejano se muestrea por intervalo para no consultar terreno procedural cada frame.
+- El cielo tiene ciclo dia/noche, nubes baratas, sol, luna, estrellas y fog atmosferico desde motor_juegos\atmospheric_sky.py.
+- El HUD usa paneles redondeados/semitransparentes para bajar el bloque negro visual.
+- El agua profunda intenta leerse mas como lago plano; la escorrentia sigue pegada al terreno.
+- Los lagos profundos usan una lamina impostora visual para tapar parte de la cuadricula sin cambiar logica/colision.
+- Las nubes ya estaban implementadas en atmospheric_sky.py; ahora se mueven como capas altas desde el horizonte, no en circulos alrededor de la camara.
+- El skybox paso a cilindro/domo segmentado para reducir esquinas demasiado claras al mirar arriba.
+- Auto ahorro inteligente entra por niveles cuando baja el FPS: reduce horizonte lejano, bosque lejano, nubes y LOD nuevo antes de tocar gameplay cercano.
+- El HUD/debug y los logs guardan rescue/rescueLevel para comparar si el rescate ayuda o entra demasiado tarde.
+- El rescate ahora es mas visible: entra desde FPS mas altos, recorta mas lo lejano y suaviza color/contraste a distancia.
+- La niebla empieza mas lejos visualmente para que el mundo respire sin subir chunks renderizados.
+- El fondo lejano ahora se comporta mas como fotografia: no cambia candidatos cada frame si el jugador esta quieto.
+- El rescue_level tiene histeresis para evitar parpadeo cuando el FPS oscila cerca del umbral.
+- Los impostores de bosque se empujan mas lejos del jugador para que no parezcan arboles fantasma flotantes.
+- La escena 3D recibe tinte global de hora: noche mas oscura/azulada y amanecer-atardecer mas calido.
+- Timeline visual de agua: separar lago, rio, charco y escorrentia; agregar orilla clara y reflejo barato.
 
 HOY - PRIORIDAD: SENTIR EL JUEGO Y MEDIR LO QUE DUELE
 
@@ -23,21 +61,31 @@ HOY - PRIORIDAD: SENTIR EL JUEGO Y MEDIR LO QUE DUELE
    - Caminar 1-2 minutos cruzando chunks.
    - Cerrar el juego.
    - Ejecutar: ANALIZAR_PERF_MOVIMIENTO.bat
+   - Ejecutar tambien: ANALIZAR_PRESETS_GRAFICOS.bat
+   - Mirar si las peores muestras tienen farTiles/farBuilt altos.
 
 3. Revisar terreno desde arriba
    - Ejecutar: PREVISUALIZAR_TERRENO.bat
    - Mirar:
      - juego3d_v1_5\previews\terrain_methods_preview.png
      - juego3d_v1_5\previews\terrain_water_debug_preview.png
-   - Objetivo: confirmar si lagos/riachuelos se ven naturales.
+   - Objetivo: confirmar si lagos/riachuelos se ven naturales y si el agua se distingue de pendiente mojada.
 
-4. Decision de hoy
+4. Revisar vegetacion desde arriba
+   - Ejecutar: PREVISUALIZAR_VEGETACION_BIOMAS.bat
+   - Mirar:
+     - juego3d_v1_5\previews\vegetation_biomes_preview.png
+   - Objetivo: confirmar si arboles y sotobosque siguen la humedad, altura y bioma.
+
+5. Decision de hoy
    - Si OpenGL se siente mejor:
      - seguir optimizando current.
    - Si OpenGL sigue con tirones fuertes:
      - priorizar chunks/mesh/decoraciones antes que Vulkan.
    - Si el terreno se ve pobre:
      - ajustar lagos, riachuelos y mesetas antes de mas features.
+   - Si el agua se sigue leyendo mal:
+     - priorizar Stage40 U - WATER IDENTITY: diferenciar lago, rio, charco y escorrentia.
 
 MANANA - PRIORIDAD: ELEGIR SIGUIENTE FRENTE
 
@@ -1443,6 +1491,164 @@ Opcion A42 - Si el siguiente paso es estado visual de mochila
    - main.py conserva solo el timer y llama metodos del runtime de chunks.
    - Si falla streaming, LOD, worker, chunks pendientes o compilacion de chunks, revisar primero main_chunk_runtime.py.
 
+   Stage39 U - ENVIRONMENT LEGACY DRAW MODULE (HECHO)
+   Objetivo:
+   - Sacar de environment.py el dibujo OpenGL legacy de rocas y decoraciones.
+   - Mantener el terreno enfocado en generacion, cache y consultas.
+   Resultado:
+   - Se agrego motor_juegos\environment_legacy_draw.py.
+   - environment.py bajo de 962 a 714 lineas.
+   - Si falla la forma visual de rocas, arboles, arbustos, flores, cactus o hongos, revisar primero environment_legacy_draw.py.
+
+   Stage40 A - REAL FAR TERRAIN LOD (HECHO)
+   Objetivo:
+   - Mostrar relieve lejano real basado en el mismo seed del mundo.
+   - Evitar montanas falsas que desaparecen cuando el jugador se acerca.
+   - Mantenerlo barato: baja resolucion, cache por tiles, sin colision ni recursos.
+   Resultado:
+   - Se agrego motor_juegos\far_terrain_lod.py.
+   - main_render3d.py dibuja el relieve lejano despues del cielo y antes de chunks normales.
+   - Si el horizonte pesa mucho o aparece muy tarde, ajustar JUEGO_FAR_TERRAIN_RADIUS, JUEGO_FAR_TERRAIN_SUBDIVISIONS o JUEGO_FAR_TERRAIN_BUILD_PER_FRAME.
+
+   Stage40 B - ATMOSPHERIC SKY CYCLE (HECHO)
+   Objetivo:
+   - Dar vida al cielo sin costo alto.
+   - Agregar ciclo dia/noche, sol, luna, estrellas y fog coherente.
+   - Mantener una fachada estable para el backend actual.
+   Resultado:
+   - Se agrego motor_juegos\atmospheric_sky.py.
+   - environment.draw_procedural_skybox() ahora delega al cielo atmosferico.
+   - main_render3d.py usa el color de fog del cielo actual y expone sky_hour/sky_daylight/sky_night en render_stats.
+
+   Stage40 C - CHEAP LOGICAL CLOUDS (HECHO)
+   Objetivo:
+   - Agregar nubes visibles sin meter modelos pesados ni texturas.
+   - Darles viento, color por hora y densidad ajustable.
+   - Mantenerlas como capa del cielo, no como chunks ni geometria con colision.
+   Resultado:
+   - atmospheric_sky.py dibuja dos capas de nubes con tarjetas translucidas.
+   - Las nubes se apagan con JUEGO_CLOUDS_ENABLED=0.
+   - main_render3d.py expone sky_clouds_enabled y sky_clouds_drawn en render_stats.
+
+   Stage40 D - DARK FOREST IMPOSTORS (HECHO)
+   Objetivo:
+   - Crear el efecto de "bosque oscuro que no deja ver atras" sin llenar el mundo de geometria pesada.
+   - Usar seed, humedad, altura, temperatura y bioma para no mentirle al jugador.
+   - Mantenerlo como LOD visual sin colision ni recursos.
+   Resultado:
+   - Se agrego motor_juegos\forest_impostor_lod.py.
+   - main_render3d.py dibuja impostores de bosque tras el relieve lejano y antes de chunks normales.
+   - Se exponen forest_impostor_enabled, forest_impostor_tiles_visible y forest_impostor_trees_drawn en render_stats.
+
+   Stage40 E - BEAUTIFUL BIOME TREES (HECHO)
+   Objetivo:
+   - Agregar al menos 5 tipos de arboles cercanos con silueta propia.
+   - Dar a cada tipo un bioma favorito.
+   - Usar ramas boxel mas organicas sin volverlos pesados.
+   Resultado:
+   - biomes.py define TREE_FAVORITE_BIOMES y elige arbol por altura/humedad/temperatura/rareza.
+   - chunk_mesh_builder.py dibuja roble, pino, abedul, sauce y cipres con ramas/copa propias.
+   - environment_legacy_draw.py tiene respaldo para que los nuevos nombres no desaparezcan si caen a legacy.
+
+   Stage40 F - BIOME UNDERGROWTH (HECHO)
+   Objetivo:
+   - Llenar el suelo sin saturar el mapa ni subir mucho el costo.
+   - Agregar vegetacion baja por humedad, altura, temperatura y rareza.
+   Resultado:
+   - environment.py agrega juncos, helechos, hierba alta, flor azul y maleza oscura.
+   - chunk_mesh_builder.py los convierte a planos/boxels baratos.
+   - environment_legacy_draw.py tiene respaldo para esos tipos.
+
+   Stage40 G - VEGETATION BIOME PREVIEW (HECHO)
+   Objetivo:
+   - Revisar distribucion de arboles y sotobosque sin abrir el juego completo.
+   - Detectar biomas vacios, saturados o raros con una imagen 2D barata.
+   Resultado:
+   - motor_juegos\vegetation_preview.py genera vegetation_biomes_preview.png usando numpy/PIL.
+   - PREVISUALIZAR_VEGETACION_BIOMAS.bat y la opcion 10 del menu ejecutan la herramienta.
+
+   Stage40 H - TREE BIOME BALANCE (HECHO)
+   Objetivo:
+   - Usar la preview de vegetacion para corregir el dominio excesivo del roble.
+   - Hacer visibles abedules y cipreses sin convertirlos en arboles comunes.
+   Resultado:
+   - biomes.py abre rangos de sauce, cipres y abedul.
+   - La preview debe mostrar mas variedad de arboles manteniendo roble como base comun.
+
+   Stage40 I - SHRUB MUSHROOM GROUND LIFE (HECHO)
+   Objetivo:
+   - Completar el suelo con arbustos y hongos baratos.
+   - Hacer que humedad, sequedad y bosque fresco tengan pistas visuales pequeñas.
+   Resultado:
+   - environment.py reparte hongo, arbusto_verde y arbusto_seco por reglas simples.
+   - vegetation_preview.py los muestra en el mapa offline de vegetacion.
+
+   Stage40 J - VEGETATION COVERAGE DIAGNOSTIC (HECHO)
+   Objetivo:
+   - Medir si la vegetacion esta vacia, sana o saturada sin abrir el juego 3D.
+   - Evitar seguir agregando detalle a ciegas.
+   Resultado:
+   - vegetation_preview.py calcula cobertura total, arboles, sotobosque y lectura rapida.
+   - previsualizar_vegetacion_biomas.py imprime esos datos en consola.
+
+   Stage40 K - VEGETATION REPORT EXPORT (HECHO)
+   Objetivo:
+   - Guardar los numeros de vegetacion para comparar cambios entre etapas.
+   - Evitar depender de la consola o memoria.
+   Resultado:
+   - vegetation_preview.py genera vegetation_biomes_report.txt junto a la imagen.
+   - El reporte incluye cobertura, conteos ordenados y recomendacion rapida.
+
+   Stage40 L - QUICK STATUS VEGETATION (HECHO)
+   Objetivo:
+   - Llevar el diagnostico de vegetacion al estado rapido del proyecto.
+   - No exigir el reporte como pieza obligatoria porque es generado.
+   Resultado:
+   - ESTADO_RAPIDO_JUEGO.bat lee vegetation_biomes_report.txt si existe.
+   - El resumen muestra lectura y cobertura vegetal.
+
+   Stage40 M - QUICK STATUS UPDATE INFO (HECHO)
+   Objetivo:
+   - Mostrar la etapa actual directamente en ESTADO_RAPIDO_JUEGO.bat.
+   - Evitar buscar manualmente version_info.py o README para saber donde quedamos.
+   Resultado:
+   - ESTADO_RAPIDO_JUEGO.bat agrega la seccion ACTUALIZACION.
+   - El resumen final muestra la actualizacion actual.
+
+   Stage40 N - VEGETATION MULTISEED CHECK (HECHO)
+   Objetivo:
+   - Probar la cobertura de vegetacion en varias semillas.
+   - Evitar ajustar biomas por una sola muestra bonita.
+   Resultado:
+   - vegetation_biomes_report.txt incluye MUESTRAS_MULTISEED.
+   - previsualizar_vegetacion_biomas.py imprime estabilidad y rango de cobertura.
+
+   Stage40 O - QUICK STATUS MULTISEED (HECHO)
+   Objetivo:
+   - Mostrar la estabilidad multisemilla desde ESTADO_RAPIDO_JUEGO.bat.
+   - Evitar abrir el reporte txt para ver si el balance se sostiene.
+   Resultado:
+   - La seccion VEGETACION muestra multiseed y rango min/max/promedio.
+   - El resumen final incluye la estabilidad multisemilla.
+
+   Stage40 P - VEGETATION REPORT STAMP (HECHO)
+   Objetivo:
+   - Evitar usar un reporte de vegetacion viejo sin aviso.
+   - Marcar el reporte con la etapa que lo genero.
+   Resultado:
+   - vegetation_biomes_report.txt incluye update_stage.
+   - ESTADO_RAPIDO_JUEGO.bat muestra reporte_etapa y reporte_actualizado.
+
+   Stage40 Q - HORIZON BIOME DISTANCE (HECHO)
+   Objetivo:
+   - Aumentar distancia de dibujado en 1 chunk.
+   - Hundir suavemente el horizonte como planeta pequeno.
+   - Tintar cielo/fog por bioma distante para orientar desiertos y pantanos.
+   Resultado:
+   - main_config.py sube radio_vision por preset.
+   - far_terrain_lod.py aplica hundimiento por anillo.
+   - atmospheric_sky.py calcula tinte de bioma lejano y main_render3d.py lo actualiza por frame.
+
 Opcion B - Si el problema principal es visual/terreno
    Stage34 C - AGUA DE MESETA NATURAL
    Objetivo:
@@ -1460,10 +1666,11 @@ Opcion C - Si OpenGL ya se siente estable
 Recomendacion actual:
 - Leer LEEME_PRIMERO.txt si se abre la carpeta desde cero.
 - Usar INICIO_JUEGO.bat como entrada principal.
-- Usar la opcion 12 de INICIO_JUEGO.bat para ver el estado rapido antes de una sesion larga.
+- Usar la opcion 13 de INICIO_JUEGO.bat para ver el estado rapido antes de una sesion larga.
 - Leer la seccion SIGUIENTE PASO del estado rapido antes de decidir si jugar, instalar dependencias o probar presets.
-- Si la opcion 12 muestra un comando manual sugerido, usarlo solo cuando quieras reparar dependencias.
-- Usar la opcion 11 de INICIO_JUEGO.bat si se quiere comprobar que la estructura esta completa.
+- Si la opcion 13 muestra un comando manual sugerido, usarlo solo cuando quieras reparar dependencias.
+- Usar la opcion 10 de INICIO_JUEGO.bat para previsualizar vegetacion por bioma sin abrir OpenGL.
+- Usar la opcion 12 de INICIO_JUEGO.bat si se quiere comprobar que la estructura esta completa.
 - Ejecutar VERIFICAR_ENTORNO_JUEGO.bat si un lanzador no abre o antes de una sesion larga.
 - Si la verificacion falla, leer DIAGNOSTICO DETALLADO para ver que paquete falta por Python.
 - Si un lanzador dice que no encontro Python valido, definir JUEGO_PYTHON con la ruta del Python que tenga numpy, pygame y PyOpenGL.
@@ -1476,7 +1683,7 @@ Recomendacion actual:
 - Si no hay ruta guardada, el instalador elegira el Python que ya tenga mas paquetes listos.
 - Despues de instalar, el instalador comprobara ese mismo Python con numpy, pygame y PyOpenGL.
 - Si el Python queda listo, el instalador podra guardar esa ruta con GUARDAR.
-- La opcion 12 muestra el comando exacto que usaria la opcion 6 para reparar dependencias.
+- La opcion 13 muestra el comando exacto que usaria la opcion 6 para reparar dependencias.
 - Ejecutar PROBAR_PRESETS_OPENGL.bat para limpiar, probar low/balanced/high y analizar resultados.
 - Caminar 1-2 minutos por preset en movimiento real, cruzando chunks si puedes.
 - Elegir el preset base segun ANALIZAR_PRESETS_GRAFICOS.bat o la opcion 5 del menu.
@@ -1490,11 +1697,11 @@ Recomendacion actual:
 - Tras Stage38 Q, correr PROBAR_PRESETS_OPENGL.bat otra vez para comparar chunkDist/chunksLOD/FPS contra los logs anteriores.
 - Tras Stage38 R, mirar visibleV y lodV en el reporte: si lodV domina, afinar horizonte/LOD; si visibleDetailVerts domina, recortar detalle cercano o densidad.
 - Tras Stage38 S, mirar si visibleDetailVerts baja al moverse. Si aparecen huecos o popping al girar, subir JUEGO_DETAIL_CHUNK_NEAR_KEEP.
-- Usar la opcion 13 de INICIO_JUEGO.bat para comprobar que la puerta OBJ sigue importando y cacheando modelos.
-- Usar la opcion 14 de INICIO_JUEGO.bat para auditar valores repetidos antes de crear nuevas constantes.
+- Usar la opcion 14 de INICIO_JUEGO.bat para comprobar que la puerta OBJ sigue importando y cacheando modelos.
+- Usar la opcion 15 de INICIO_JUEGO.bat para auditar valores repetidos antes de crear nuevas constantes.
 - Tras Stage38 V, si se toca streaming/culling de chunks, cambiar primero motor_juegos\chunk_math.py.
 - Tras Stage38 W, si se agrega una variable JUEGO_* nueva, leerla desde motor_juegos\env_config.py.
-- Usar la opcion 15 de INICIO_JUEGO.bat para revisar que archivos superan 1000 lineas antes de pedir ayuda a Continue/Ollama.
+- Usar la opcion 16 de INICIO_JUEGO.bat para revisar que archivos superan 1000 lineas antes de pedir ayuda a Continue/Ollama.
 - Tras Stage38 Y, cambiar presets/radios/distancias base en main_config.py, no en main.py.
 - Tras Stage38 Z, cambiar fisica/daño/render de piedras lanzadas en game\projectiles.py.
 - Tras Stage39 A, reactivar lock-on desde game\z_targeting.py si se decide volver a usar Q/TAB.
@@ -1517,6 +1724,23 @@ Recomendacion actual:
 - Tras Stage39 R, cambiar ataque, proyectiles o marcado visual/Z-lock en main_combat_runtime.py.
 - Tras Stage39 S, cambiar logs runtime, stream bridge print o muestras de preset en main_preset_logging.py.
 - Tras Stage39 T, cambiar streaming/LOD/worker/compilacion de chunks en main_chunk_runtime.py.
+- Tras Stage39 U, cambiar rocas/decoraciones OpenGL legacy del terreno en motor_juegos\environment_legacy_draw.py.
+- Tras Stage40 A, cambiar relieve lejano real en motor_juegos\far_terrain_lod.py.
+- Tras Stage40 D, cambiar masa lejana de bosque oscuro en motor_juegos\forest_impostor_lod.py.
+- Tras Stage40 E, cambiar seleccion de arboles en motor_juegos\biomes.py y sus formas en motor_juegos\chunk_mesh_builder.py.
+- Tras Stage40 F, cambiar reglas de sotobosque en environment.py y formas en motor_juegos\chunk_mesh_builder.py.
+- Tras Stage40 G, revisar vegetation_biomes_preview.png despues de tocar arboles, biomas o sotobosque.
+- Tras Stage40 H, ajustar primero _choose_tree_type en biomes.py antes de tocar densidad de arboles.
+- Tras Stage40 I, ajustar primero las reglas de sotobosque en environment.py y verificar con PREVISUALIZAR_VEGETACION_BIOMAS.bat.
+- Tras Stage40 J, si cobertura dice saturado, bajar reglas/probabilidades antes de agregar nuevas plantas.
+- Tras Stage40 K, comparar vegetation_biomes_report.txt antes/despues de tocar biomas o densidad.
+- Tras Stage40 L, revisar la seccion VEGETACION en ESTADO_RAPIDO_JUEGO.bat antes de subir densidad.
+- Tras Stage40 M, usar ESTADO_RAPIDO_JUEGO.bat como tablero principal para saber etapa, preset, Python y vegetacion.
+- Tras Stage40 N, si stability=revisar en el reporte de vegetacion, ajustar reglas antes de agregar mas detalle.
+- Tras Stage40 O, mirar VEGETACION/multiseed en estado rapido antes de tocar densidades de mundo.
+- Tras Stage40 P, si reporte_actualizado=NO, regenerar PREVISUALIZAR_VEGETACION_BIOMAS.bat.
+- Tras Stage40 Q, si bajan FPS, probar LOW o bajar JUEGO_RADIO_VISION/JUEGO_FAR_TERRAIN_HORIZON_SINK.
+- Tras Stage40 B/C, cambiar ciclo dia/noche, nubes, sol, luna, estrellas o fog en motor_juegos\atmospheric_sky.py.
 - Revisar visualmente lagos/orillas: el agua ya no deberia flotar metros sobre el terreno.
 - Matar algunos slimes y confirmar que el charco queda visible sobre el suelo.
 - Si sigue bajando mucho FPS, ejecutar ANALIZAR_PERF_MOVIMIENTO.bat despues de un log.

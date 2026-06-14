@@ -10,8 +10,13 @@ from OpenGL.GL import (
     glPushMatrix, glPopMatrix, glTranslatef,
     glGetDoublev, glGetIntegerv,
     glFogf,
+    glMatrixMode, glLoadIdentity, glOrtho,
+    glDisable, glEnable, glDepthMask, glBegin, glEnd, glColor4f, glVertex2f,
+    glBlendFunc,
     GL_MODELVIEW_MATRIX, GL_PROJECTION_MATRIX, GL_VIEWPORT,
     GL_FOG_START, GL_FOG_END,
+    GL_PROJECTION, GL_MODELVIEW, GL_DEPTH_TEST, GL_FOG, GL_BLEND,
+    GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_QUADS,
     glClear, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT,
 )
 from OpenGL.GLU import gluProject
@@ -50,3 +55,40 @@ def world_to_screen_legacy(x, y, z):
 def clear_color_depth():
     """Limpia pantalla/profundidad desde un punto legacy centralizado."""
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+
+def draw_world_tint_overlay(width, height, color):
+    """Capa atmosferica barata para que dia/noche afecte la escena 3D."""
+    if not color or len(color) < 4:
+        return
+    alpha = max(0.0, min(0.75, float(color[3])))
+    if alpha <= 0.005:
+        return
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    glOrtho(0, float(width), float(height), 0, -1, 1)
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+
+    glDisable(GL_DEPTH_TEST)
+    glDisable(GL_FOG)
+    glDepthMask(False)
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    glColor4f(float(color[0]), float(color[1]), float(color[2]), alpha)
+    glBegin(GL_QUADS)
+    glVertex2f(0.0, 0.0)
+    glVertex2f(float(width), 0.0)
+    glVertex2f(float(width), float(height))
+    glVertex2f(0.0, float(height))
+    glEnd()
+    glDepthMask(True)
+    glDisable(GL_BLEND)
+    glEnable(GL_DEPTH_TEST)
+
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)

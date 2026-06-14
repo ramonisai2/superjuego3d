@@ -12,14 +12,42 @@ def _smoothstep_np(edge0, edge1, x):
 _BIOME_GRID = {
     (0, 0): ([0.88, 0.80, 0.60], False, 0.005, "pequeña", "arbol_seco", 0.006, [0.85, 0.75, 0.55]),
     (0, 1): ([0.82, 0.76, 0.68], False, 0.005, "normal", None, 0.0, None),
-    (0, 2): ([0.22, 0.28, 0.18], True,  0.005, "normal", "arbol_pantano", 0.007, None),
+    (0, 2): ([0.22, 0.28, 0.18], True,  0.005, "normal", "arbol_sauce", 0.007, None),
     (1, 0): ([0.55, 0.52, 0.30], True,  0.01,  "normal", "arbol_seco", 0.006, None),
-    (1, 1): ([0.22, 0.55, 0.22], True,  0.008, "normal", "arbol_bosque", 0.008, None),
-    (1, 2): ([0.12, 0.42, 0.12], True,  0.01,  "normal", "arbol_bosque", 0.010, None),
+    (1, 1): ([0.22, 0.55, 0.22], True,  0.008, "normal", "arbol_roble", 0.008, None),
+    (1, 2): ([0.12, 0.42, 0.12], True,  0.01,  "normal", "arbol_cipres", 0.010, None),
     (2, 0): ([0.40, 0.40, 0.40], False, 0.04,  "gigante", "cristal", 0.005, [0.38, 0.38, 0.40]),
-    (2, 1): ([0.30, 0.35, 0.38], True,  0.02,  "normal", "cristal", 0.003, None),
+    (2, 1): ([0.30, 0.35, 0.38], True,  0.02,  "normal", "arbol_pino", 0.004, None),
     (2, 2): ([0.95, 0.95, 0.98], False, 0.01,  "grande", None, 0.0, None),
 }
+
+
+TREE_FAVORITE_BIOMES = {
+    "arbol_roble": "bosque templado / pradera humeda",
+    "arbol_pino": "montana fria / meseta alta",
+    "arbol_abedul": "bosque fresco claro",
+    "arbol_sauce": "orilla humeda / pantano bajo",
+    "arbol_cipres": "bosque oscuro humedo",
+}
+
+
+TREE_TYPES = set(TREE_FAVORITE_BIOMES) | {"arbol_bosque", "arbol_pantano", "arbol_seco"}
+
+
+def _choose_tree_type(avg_h, avg_m, temperatura, rareza, deco_type):
+    if deco_type == "arbol_seco":
+        return "arbol_seco"
+    if avg_h > 13.0 or temperatura < 0.20:
+        return "arbol_pino"
+    if avg_m > 0.72 and avg_h < 9.2 and temperatura > 0.20:
+        return "arbol_sauce"
+    if avg_m > 0.66 and rareza < -0.08 and temperatura < 0.68 and 4.0 < avg_h < 17.0:
+        return "arbol_cipres"
+    if 0.34 <= avg_m <= 0.72 and 0.16 <= temperatura <= 0.68 and -0.18 <= rareza <= 0.58 and 3.0 < avg_h < 14.5:
+        return "arbol_abedul"
+    if deco_type == "arbol_pantano":
+        return "arbol_sauce"
+    return "arbol_roble"
 
 
 def _macro_layer_field(x_array, z_array, seed):
@@ -56,6 +84,53 @@ def _altitude_temperature_band(x_array, z_array, seed):
         np.cos(z_array * 0.00130 - s * 0.4) * 0.35
     )
     return np.clip((band + 0.80) / 1.60, 0.0, 1.0)
+
+
+def _playable_plain_field(x_array, z_array, seed):
+    """
+    Llanuras jugables: zonas amplias donde el relieve local se suaviza.
+
+    No borran accidentes geograficos; solo crean bolsillos de terreno comodo
+    entre depresiones, colinas, mesetas y sierras para que caminar/construir no
+    sea una pelea constante con pendientes.
+    """
+    cell_size = 360.0
+    base_cx = np.floor(x_array / cell_size)
+    base_cz = np.floor(z_array / cell_size)
+    best = np.zeros_like(x_array, dtype=float)
+
+    for ox in (-1.0, 0.0, 1.0):
+        for oz in (-1.0, 0.0, 1.0):
+            cx = base_cx + ox
+            cz = base_cz + oz
+            h = cx * 173.31 + cz * 257.73 + seed * 0.021
+            enabled = _hash01(h + 15.7) > 0.38
+            rx = _hash01(h + 2.9)
+            rz = _hash01(h + 8.4)
+            rr = _hash01(h + 34.2)
+            elong = _hash01(h + 65.1)
+            angle = _hash01(h + 19.6) * np.pi * 2.0
+
+            center_x = (cx + 0.18 + rx * 0.64) * cell_size
+            center_z = (cz + 0.18 + rz * 0.64) * cell_size
+            radius_x = 72.0 + rr * 92.0
+            radius_z = radius_x * (0.62 + elong * 0.82)
+
+            dx = x_array - center_x
+            dz = z_array - center_z
+            ca = np.cos(angle)
+            sa = np.sin(angle)
+            lx = dx * ca + dz * sa
+            lz = -dx * sa + dz * ca
+
+            d = np.sqrt((lx / radius_x) ** 2 + (lz / radius_z) ** 2)
+            strength = np.clip(1.0 - d, 0.0, 1.0)
+            strength = strength * strength * (3.0 - 2.0 * strength)
+            core = np.clip(1.0 - d * 1.35, 0.0, 1.0)
+            core = core * core * (3.0 - 2.0 * core)
+            best = np.maximum(best, np.where(enabled, np.maximum(strength * 0.70, core), 0.0))
+
+    return best
 
 def _lake_basin_field(x_array, z_array, seed):
     """
@@ -237,12 +312,14 @@ def calculate_terrain_properties_with_fields(x_array, z_array, seed):
     layer_low_macro, layer_high_macro, macro = _macro_layer_field(x_array, z_array, seed)
     temp_band = _altitude_temperature_band(x_array, z_array, seed)
     mesa_strength, mesa_lift = _mesa_field(x_array, z_array, seed)
+    plain_strength = _playable_plain_field(x_array, z_array, seed)
 
     # Detalle local y ondulacion media: ahora hay mas accidente sin subir todo el mapa.
     roll_a = np.sin(x_array * 0.018 - s) * np.cos(z_array * 0.016 + s) * 0.72
     roll_b = np.sin(x_array * 0.042 + z_array * 0.017 + s * 0.3) * 0.36
     roll_c = np.sin(x_array * 0.070 - z_array * 0.051 + s * 0.9) * 0.16
     detalle = roll_a + roll_b + roll_c
+    detalle = detalle * (1.0 - plain_strength * 0.62)
 
     # Campo de crestas/cumbres: es raro y estrecho, para meter una cuarta altura.
     ridge = (
@@ -278,6 +355,12 @@ def calculate_terrain_properties_with_fields(x_array, z_array, seed):
     # Mesetas especificas: suaviza cima y levanta un poco; con 4 capas se reduce el lift para no crear paredes imposibles.
     mesa_base = _neighbor_mean(elevation_final, radius=4)
     elevation_final = elevation_final * (1.0 - mesa_top * 0.38) + mesa_base * (mesa_top * 0.38) + mesa_lift * 0.48
+
+    # Llanuras jugables: suavizan la zona media sin borrar cuencas, cumbres ni mesetas.
+    plain_gate = plain_strength * (1.0 - lake_floor_strength * 0.65) * (1.0 - mesa_top * 0.82) * (1.0 - peak_strength * 0.90)
+    plain_gate = np.clip(plain_gate, 0.0, 0.78)
+    plain_base = _neighbor_mean(elevation_final, radius=5)
+    elevation_final = elevation_final * (1.0 - plain_gate * 0.72) + plain_base * (plain_gate * 0.72)
 
     # Riachuelos de meseta: si una meseta es humeda/verde, sus bordes tallan
     # pequenas rutas de escorrentia como pasaria en laderas naturales.
@@ -332,6 +415,7 @@ def calculate_terrain_properties_with_fields(x_array, z_array, seed):
         "lake_basin": lake_basin,
         "high_lake_basin": high_lake_basin,
         "mesa_strength": mesa_strength,
+        "plain_strength": plain_strength,
     }
     return props, fields
 
@@ -609,8 +693,11 @@ def get_biome_color_and_features(avg_h, avg_m, es_interior_cueva, temperatura, r
         color = _lerp_color(color, [0.10, 0.20, 0.10], bosque_osc * 0.70)
         rock_chance = _lerp_property(rock_chance, 0.01, bosque_osc)
         if bosque_osc > 0.45:
-            deco_type = "arbol_pantano"
+            deco_type = "arbol_cipres"
             deco_chance = max(deco_chance, 0.0045)
             rock_color = _lerp_color(rock_color or [0.26, 0.28, 0.24], [0.20, 0.20, 0.20], bosque_osc)
+
+    if deco_type in TREE_TYPES:
+        deco_type = _choose_tree_type(avg_h, avg_m, temperatura, rareza, deco_type)
 
     return color, has_grass, rock_chance, rock_type, deco_type, deco_chance, rock_color

@@ -73,7 +73,12 @@ class MainChunkRuntime:
         self.cola_lod_peticiones.sort(key=lambda c: (c[0] - p_cx) ** 2 + (c[1] - p_cz) ** 2)
         creados = 0
         intentos = 0
-        limite = max(1, int(limit_override if limit_override is not None else self.lods_crear_por_tanda))
+        limite = int(limit_override if limit_override is not None else self.lods_crear_por_tanda)
+        if limite <= 0:
+            self.stream_bridge_stats["lod_queue_len"] = len(self.cola_lod_peticiones)
+            self.stream_bridge_stats["lod_loaded"] = len(self.mundo_chunks_simple)
+            return 0
+        limite = max(1, limite)
         while self.cola_lod_peticiones and creados < limite and intentos < limite * 3:
             intentos += 1
             coord = self.cola_lod_peticiones.pop(0)

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from motor_juegos.atmospheric_sky import current_sky_profile, set_sky_rescue_level, sky_runtime_stats, update_distant_biome_sky
+from motor_juegos.far_terrain_lod import draw_far_terrain_lod, far_terrain_stats
+from motor_juegos.forest_impostor_lod import draw_forest_impostor_lod, forest_impostor_stats
 from motor_juegos.render_api import FogConfig
 from game.voxel_models import render_player_avatar, render_first_person_weapon
 
@@ -43,6 +46,7 @@ def render_runtime_3d(
     remnant_render_distance,
     entity_render_distance,
     entity_label_distance,
+    seed,
 ):
     z_target_screen = None
     npc_label_screen = None
@@ -77,6 +81,9 @@ def render_runtime_3d(
     render_stats["adaptive_stream_interval_ms"] = int(float(adaptive_streaming.get("interval", 0.05)) * 1000)
     render_stats["adaptive_stream_lod_limit"] = int(adaptive_streaming.get("lod_limit", lods_crear_por_tanda))
     render_stats["adaptive_stream_forced"] = int(adaptive_streaming.get("forced", 0))
+    rescue = adaptive_runtime.rescue_settings()
+    render_stats["frame_rescue_level"] = int(rescue.get("level", 0) or 0)
+    render_stats["frame_rescue_label"] = str(rescue.get("label", "OK"))
     world_detail_status = world_detail_debug_status(env, resource_amount_func)
     render_stats["world_detail_preset"] = str(world_detail_status.get("preset", "balanced")).upper()
     render_stats["world_detail_grass"] = float(world_detail_status.get("grass", 0.0) or 0.0)
@@ -99,10 +106,24 @@ def render_runtime_3d(
     px, py, pz, lx, ly, lz = player.get_camera_vectors()
     r3d.setup_camera(px, py, pz, lx, ly, lz)
 
-    color_horizonte = [0.75, 0.88, 1.0]
+    if int(rescue.get("level", 0) or 0) < 3:
+        update_distant_biome_sky(env, px, pz, lx, lz, seed)
+    sky_profile = current_sky_profile()
+    color_horizonte = list(sky_profile.fog)
+    render_stats["sky_hour"] = round(float(sky_profile.hour), 2)
+    render_stats["sky_daylight"] = round(float(sky_profile.daylight), 3)
+    render_stats["sky_night"] = round(float(sky_profile.night), 3)
+    world_tint = _world_tint_from_sky(sky_profile)
+    render_stats["sky_world_tint_alpha"] = round(float(world_tint[3]), 3)
     r3d.setup_fog(color_horizonte)
     render_backend.configure_fog(FogConfig(tuple(color_horizonte), fog_start, fog_end))
+    set_sky_rescue_level(rescue.get("level", 0), rescue.get("sky_cloud_scale", 1.0))
     render_backend.draw_skybox(env, px, py, pz, size=300.0)
+    render_stats.update({f"sky_{k}": v for k, v in sky_runtime_stats().items()})
+    draw_far_terrain_lod(env, px, py, pz, seed, rescue=rescue)
+    render_stats.update({f"far_terrain_{k}": v for k, v in far_terrain_stats().items()})
+    draw_forest_impostor_lod(env, px, py, pz, seed, rescue=rescue)
+    render_stats.update({f"forest_impostor_{k}": v for k, v in forest_impostor_stats().items()})
 
     render_graph.begin_frame()
     if debug_render_all_chunks:
@@ -192,8 +213,18 @@ def render_runtime_3d(
             attack_swing=player.attack_swing_value() if hasattr(player, "attack_swing_value") else 0.0,
         )
 
+    from motor_juegos.gl_legacy_bridge import draw_world_tint_overlay
+    draw_world_tint_overlay(ancho, alto, world_tint)
     r3d.disable_fog()
     return render_stats, z_target_screen, npc_label_screen
+
+
+def _world_tint_from_sky(profile):
+    night_alpha = max(0.0, min(0.42, float(profile.night) * 0.34))
+    dawn_alpha = max(0.0, min(0.18, float(profile.dawn) * 0.16))
+    if dawn_alpha > night_alpha * 0.65:
+        return (0.95, 0.30, 0.10, dawn_alpha)
+    return (0.02, 0.045, 0.13, night_alpha)
 
 
 def _world_to_screen(render_backend, x, y, z):

@@ -1,12 +1,12 @@
 JUEGO 1.6 - REPORTE DE PRESETS GRAFICOS
 
 Estado: requiere atencion
-Muestras analizadas: 219
-Muestras vacias ignoradas: 9
-Sesiones detectadas: 9
-Ultima sesion: opengl_recommended_balanced_5508
+Muestras analizadas: 549
+Muestras vacias ignoradas: 18
+Sesiones detectadas: 18
+Ultima sesion: opengl_recommended_balanced_6122
 Sesion analizada: all
-Mejor candidato: balanced
+Mejor candidato: high
 Preset recomendado para jugar: balanced (baja)
 Presets listos: balanced, high
 Faltan presets: low
@@ -14,24 +14,24 @@ Presets con caidas fuertes: balanced, high
 Pista de cuello de botella: Probable render/LOD: los tirones coinciden con muchos vertices visibles o chunks LOD, sin uploads altos. Revisar distancia, impostores y detalle lejano.
 Minimo por preset: 4 muestras
 
-Recomendacion: Mejor candidato parcial: balanced. Faltan muestras suficientes de: low.
+Recomendacion: Mejor candidato parcial: high. Faltan muestras suficientes de: low.
 
 Resumen por preset:
-preset      muestras  fps_prom  fps_min  escala  vertices  visibleV  lodV     uploads  chunkDist  extra  stream_ms  nota
-----------  --------  --------  -------  ------  --------  --------  -------  -------  ---------  -----  ---------  ----
-low                3      57.0     56.8    1.00      7332         -        -      0.0          -      -       50.0  Pocas muestras; jugar mas tiempo antes de decidir.
-balanced         187      54.3     19.5    1.00     11675     87619     4507      0.1        214   1.35       50.4  Tiene caidas fuertes; conviene bajar detalle o revisar picos.
-high              29      51.6     13.1    1.00     19640         -        -      0.0          -      -       50.0  Tiene caidas fuertes; conviene bajar detalle o revisar picos.
+preset      muestras  fps_prom  fps_min  escala  vertices  visibleV  lodV     uploads  farT  farB  chunkDist  extra  stream_ms  nota
+----------  --------  --------  -------  ------  --------  --------  -------  -------  ----  ----  ---------  -----  ---------  ----
+low                3      57.0     56.8    1.00      7332         -        -      0.0   0.0   0.0          -      -       50.0  Pocas muestras; jugar mas tiempo antes de decidir.
+high              29      51.6     13.1    1.00     19640         -        -      0.0   0.0   0.0          -      -       50.0  Tiene caidas fuertes; conviene bajar detalle o revisar picos.
+balanced         517      49.1     10.0    0.92     12127     87379     4445      0.0  22.6   0.0        199   1.35       63.6  Tiene caidas fuertes; conviene bajar detalle o revisar picos.
 
 Peores muestras reales:
-preset    fps    vertices visibleV lodV    chunksD chunksLOD uploads chunkDist extra detail hiddenChunks session
--------- ----- -------- -------- ------- ------- -------- ------- --------- ----- ------ ------------ -------
-high     fps= 13.1 verts= 25304 vis=      - lodV=      - chunksD= 7 chunksLOD=23 uploads= 0 chunkDist=  - extra=   - detail=  -/  - hiddenChunks=19 session=opengl_high_6316
-balanced fps= 19.5 verts= 13764 vis=      - lodV=      - chunksD= 7 chunksLOD=15 uploads= 0 chunkDist=  - extra=   - detail=  -/  - hiddenChunks= 3 session=opengl_balanced_20202
-high     fps= 31.9 verts= 19548 vis=      - lodV=      - chunksD= 7 chunksLOD=29 uploads= 0 chunkDist=  - extra=   - detail=  -/  - hiddenChunks=13 session=opengl_high_6316
-balanced fps= 32.2 verts= 12956 vis=      - lodV=      - chunksD= 9 chunksLOD=14 uploads= 1 chunkDist=  - extra=   - detail=  -/  - hiddenChunks= 2 session=opengl_balanced_3759
-balanced fps= 33.1 verts= 13096 vis=      - lodV=      - chunksD= 9 chunksLOD=12 uploads= 0 chunkDist=  - extra=   - detail=  -/  - hiddenChunks= 4 session=opengl_balanced_3759
-high     fps= 33.3 verts= 15736 vis=      - lodV=      - chunksD= 9 chunksLOD=27 uploads= 0 chunkDist=  - extra=   - detail=  -/  - hiddenChunks=13 session=opengl_high_6316
+preset    fps    vertices visibleV lodV    chunksD chunksLOD uploads chunkDist extra detail far hiddenChunks session
+-------- ----- -------- -------- ------- ------- -------- ------- --------- ----- ------ --- ------------ -------
+balanced fps= 10.0 verts= 14636 vis=  95788 lodV=   5272 chunksD= 7 chunksLOD=13 uploads= 0 chunkDist=194 extra=1.35 detail=105/ 80 far=  -/ - hiddenChunks=27 session=opengl_recommended_balanced_28296
+balanced fps= 11.5 verts= 10028 vis=  64088 lodV=   4932 chunksD= 5 chunksLOD=12 uploads= 0 chunkDist=171 extra=1.35 detail=105/ 80 far= 38/ 1 hiddenChunks= 7 session=opengl_balanced_8479
+balanced fps= 11.7 verts= 13124 vis=  73084 lodV=   7348 chunksD= 5 chunksLOD=18 uploads= 0 chunkDist=211 extra=1.35 detail=105/ 80 far=  -/ - hiddenChunks=26 session=opengl_recommended_balanced_28296
+high     fps= 13.1 verts= 25304 vis=      - lodV=      - chunksD= 7 chunksLOD=23 uploads= 0 chunkDist=  - extra=   - detail=  -/  - far=  -/ - hiddenChunks=19 session=opengl_high_6316
+balanced fps= 14.0 verts= 11684 vis=  76624 lodV=   2800 chunksD= 6 chunksLOD= 7 uploads= 0 chunkDist=150 extra=1.35 detail=105/ 80 far= 64/ 0 hiddenChunks= 9 session=opengl_recommended_balanced_6122
+balanced fps= 14.3 verts= 12420 vis= 101872 lodV=   6932 chunksD= 7 chunksLOD=17 uploads= 0 chunkDist=214 extra=1.35 detail=131/ 80 far=  -/ - hiddenChunks= 1 session=opengl_recommended_balanced_26343
 
 Pista: Probable render/LOD: los tirones coinciden con muchos vertices visibles o chunks LOD, sin uploads altos. Revisar distancia, impostores y detalle lejano.
 
@@ -40,3 +40,4 @@ Lectura rapida:
 - fps_min bajo revela tirones o caidas fuertes.
 - escala cerca de 1.00 significa que la calidad adaptativa no tuvo que bajar mucho.
 - uploads y stream_ms altos pueden indicar carga de chunks o mallas.
+- farT/farB altos durante caidas apuntan al horizonte lejano.

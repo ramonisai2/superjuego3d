@@ -24,6 +24,7 @@ WORST_SAMPLE_LIMIT = 6
 HIGH_VERTICES_HINT = 12000.0
 HIGH_LOD_CHUNKS_HINT = 12.0
 HIGH_UPLOADS_HINT = 2.0
+HIGH_FAR_TILES_HINT = 36.0
 
 
 @dataclass
@@ -43,6 +44,9 @@ class PresetRuntimeSummary:
     avg_hidden_chunks: float = 0.0
     avg_hidden_entities: float = 0.0
     avg_stream_ms: float = 0.0
+    avg_far_tiles: float = 0.0
+    avg_far_built: float = 0.0
+    avg_far_cache: float = 0.0
     score: float = 0.0
     notes: str = ""
 
@@ -108,6 +112,8 @@ def _format_worst_sample(row: Dict[str, Any]) -> str:
     detail_near = f"{int(row.get('detailNear', 0.0) or 0.0):>3}" if "detailNear" in row else "  -"
     visible = f"{int(row.get('visibleVerts', 0.0) or 0.0):>7}" if "visibleVerts" in row else "      -"
     visible_lod = f"{int(row.get('visibleLODVerts', 0.0) or 0.0):>7}" if "visibleLODVerts" in row else "      -"
+    far_tiles = f"{int(row.get('farTiles', 0.0) or 0.0):>3}" if "farTiles" in row else "  -"
+    far_built = f"{int(row.get('farBuilt', 0.0) or 0.0):>2}" if "farBuilt" in row else " -"
     return (
         f"{row.get('preset') or '-':<8} "
         f"fps={float(row.get('fps', 0.0) or 0.0):>5.1f} "
@@ -120,6 +126,7 @@ def _format_worst_sample(row: Dict[str, Any]) -> str:
         f"chunkDist={chunk_dist} "
         f"extra={chunk_extra} "
         f"detail={detail_dist}/{detail_near} "
+        f"far={far_tiles}/{far_built} "
         f"hiddenChunks={int(row.get('hiddenChunks', 0.0) or 0.0):>2} "
         f"session={row.get('session') or '-'}"
     )
@@ -133,10 +140,17 @@ def _bottleneck_hint(worst_samples: List[Dict[str, Any]]) -> str:
     avg_lod_vertices = _average(_positive_values(worst_samples, "visibleLODVerts"))
     avg_uploads = _average([float(row.get("uploads", 0.0) or 0.0) for row in worst_samples])
     avg_draw_chunks = _average([float(row.get("chunksD", 0.0) or 0.0) for row in worst_samples])
+    avg_far_tiles = _average([float(row.get("farTiles", 0.0) or 0.0) for row in worst_samples])
+    avg_far_built = _average([float(row.get("farBuilt", 0.0) or 0.0) for row in worst_samples])
     if avg_uploads >= HIGH_UPLOADS_HINT:
         return (
             "Probable streaming/carga de chunks: los tirones coinciden con uploads altos. "
             "Revisar generacion, subida de mallas y presupuesto por frame."
+        )
+    if avg_far_tiles >= HIGH_FAR_TILES_HINT and avg_far_built > 0.0:
+        return (
+            "Probable horizonte lejano: las peores muestras coinciden con parches distantes visibles "
+            "y construccion nueva. Bajar JUEGO_FAR_TERRAIN_MAX_VISIBLE o JUEGO_FAR_TERRAIN_BUILD_PER_FRAME."
         )
     if avg_vertices >= HIGH_VERTICES_HINT or avg_lod_chunks >= HIGH_LOD_CHUNKS_HINT or avg_lod_vertices >= HIGH_VERTICES_HINT:
         return (
@@ -166,6 +180,9 @@ def _summarize_preset(preset: str, rows: List[Dict[str, Any]]) -> PresetRuntimeS
     hidden_chunks = [float(row.get("hiddenChunks", 0.0) or 0.0) for row in rows]
     hidden_entities = [float(row.get("hiddenEnt", 0.0) or 0.0) for row in rows]
     stream_ms = [float(row.get("streamMs", 0.0) or 0.0) for row in rows]
+    far_tiles = [float(row.get("farTiles", 0.0) or 0.0) for row in rows]
+    far_built = [float(row.get("farBuilt", 0.0) or 0.0) for row in rows]
+    far_cache = [float(row.get("farCache", 0.0) or 0.0) for row in rows]
     summary = PresetRuntimeSummary(
         preset=preset,
         samples=len(rows),
@@ -182,6 +199,9 @@ def _summarize_preset(preset: str, rows: List[Dict[str, Any]]) -> PresetRuntimeS
         avg_hidden_chunks=_average(hidden_chunks),
         avg_hidden_entities=_average(hidden_entities),
         avg_stream_ms=_average(stream_ms),
+        avg_far_tiles=_average(far_tiles),
+        avg_far_built=_average(far_built),
+        avg_far_cache=_average(far_cache),
     )
     summary.score = (
         summary.avg_fps * 10.0
@@ -366,8 +386,8 @@ def format_preset_runtime_report(stats: Dict[str, Any]) -> str:
         return "\n".join(lines) + "\n"
 
     lines.append("Resumen por preset:")
-    lines.append("preset      muestras  fps_prom  fps_min  escala  vertices  visibleV  lodV     uploads  chunkDist  extra  stream_ms  nota")
-    lines.append("----------  --------  --------  -------  ------  --------  --------  -------  -------  ---------  -----  ---------  ----")
+    lines.append("preset      muestras  fps_prom  fps_min  escala  vertices  visibleV  lodV     uploads  farT  farB  chunkDist  extra  stream_ms  nota")
+    lines.append("----------  --------  --------  -------  ------  --------  --------  -------  -------  ----  ----  ---------  -----  ---------  ----")
     for item in sorted(summaries, key=lambda row: float(row.get("score", 0.0) or 0.0), reverse=True):
         avg_chunk_distance = float(item.get("avg_chunk_distance", 0.0) or 0.0)
         avg_chunk_extra = float(item.get("avg_chunk_extra", 0.0) or 0.0)
@@ -387,6 +407,8 @@ def format_preset_runtime_report(stats: Dict[str, Any]) -> str:
             f"{visible_vertices_text}  "
             f"{visible_lod_text}  "
             f"{float(item.get('avg_uploads', 0.0) or 0.0):>7.1f}  "
+            f"{float(item.get('avg_far_tiles', 0.0) or 0.0):>4.1f}  "
+            f"{float(item.get('avg_far_built', 0.0) or 0.0):>4.1f}  "
             f"{chunk_distance_text}  "
             f"{chunk_extra_text}  "
             f"{float(item.get('avg_stream_ms', 0.0) or 0.0):>9.1f}  "
@@ -397,8 +419,8 @@ def format_preset_runtime_report(stats: Dict[str, Any]) -> str:
         lines.extend([
             "",
             "Peores muestras reales:",
-            "preset    fps    vertices visibleV lodV    chunksD chunksLOD uploads chunkDist extra detail hiddenChunks session",
-            "-------- ----- -------- -------- ------- ------- -------- ------- --------- ----- ------ ------------ -------",
+            "preset    fps    vertices visibleV lodV    chunksD chunksLOD uploads chunkDist extra detail far hiddenChunks session",
+            "-------- ----- -------- -------- ------- ------- -------- ------- --------- ----- ------ --- ------------ -------",
         ])
         for row in worst_samples:
             lines.append(_format_worst_sample(row))
@@ -413,6 +435,7 @@ def format_preset_runtime_report(stats: Dict[str, Any]) -> str:
         "- fps_min bajo revela tirones o caidas fuertes.",
         "- escala cerca de 1.00 significa que la calidad adaptativa no tuvo que bajar mucho.",
         "- uploads y stream_ms altos pueden indicar carga de chunks o mallas.",
+        "- farT/farB altos durante caidas apuntan al horizonte lejano.",
     ])
     return "\n".join(lines) + "\n"
 

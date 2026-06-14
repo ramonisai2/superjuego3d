@@ -8,8 +8,13 @@ import os
 # suele no aparecer o queda tapado por el render 3D.
 
 def _panel(x, y, w, h):
-    r2d.draw_rect_2d(x, y, w, h, (0.01, 0.01, 0.012, 0.78))
-    r2d.draw_rect_2d(x + 2, y + 2, w - 4, h - 4, (0.04, 0.045, 0.05, 0.64))
+    if hasattr(r2d, "draw_rounded_rect_2d"):
+        r2d.draw_rounded_rect_2d(x, y, w, h, 8, (0.02, 0.024, 0.030, 0.34))
+        r2d.draw_rounded_rect_2d(x + 1, y + 1, w - 2, h - 2, 7, (0.05, 0.060, 0.070, 0.18))
+        r2d.draw_rounded_rect_2d(x + 1, y + 1, w - 2, 1, 1, (0.45, 0.58, 0.70, 0.10))
+    else:
+        r2d.draw_rect_2d(x, y, w, h, (0.01, 0.01, 0.012, 0.34))
+        r2d.draw_rect_2d(x + 2, y + 2, w - 4, h - 4, (0.04, 0.045, 0.05, 0.18))
 
 
 def _clip(text, limit):
@@ -123,7 +128,9 @@ def draw_adaptive_quality(state, scale, x=1058, y=676):
         scale_value = max(0.0, min(1.0, float(scale)))
     except Exception:
         scale_value = 1.0
-    if state == "AHORRO":
+    if state in ("CRIT", "CRITICO"):
+        color = (255, 150, 120)
+    elif state in ("RESC", "AHORRO"):
         color = (255, 215, 130)
     elif state == "RECUP":
         color = (170, 225, 255)

@@ -1,5 +1,5 @@
 JUEGO 1.6 - ESTADO RAPIDO
-Fecha: 12/06/2026 20:35:33.22
+Fecha: 14/06/2026  7:27:34.64
 
 ESTRUCTURA PRINCIPAL
 --------------------
@@ -10,6 +10,7 @@ OK     archivo  LANZAR_OPENGL.bat
 OK     archivo  LANZAR_OPENGL_RECOMENDADO.bat
 OK     archivo  PROBAR_PRESETS_OPENGL.bat
 OK     archivo  PROBAR_IMPORTADOR_OBJ.bat
+OK     archivo  PREVISUALIZAR_VEGETACION_BIOMAS.bat
 OK     archivo  AUDITAR_VALORES_RECICLABLES.bat
 OK     archivo  AUDITAR_TAMANO_PY.bat
 OK     archivo  VERIFICAR_ENTORNO_JUEGO.bat
@@ -21,6 +22,11 @@ OK     archivo  juego3d_v1_5\motor_juegos\env_config.py
 OK     archivo  juego3d_v1_5\motor_juegos\chunk_math.py
 OK     archivo  juego3d_v1_5\motor_juegos\world_detail.py
 OK     archivo  juego3d_v1_5\motor_juegos\chunk_mesh_builder.py
+OK     archivo  juego3d_v1_5\motor_juegos\environment_legacy_draw.py
+OK     archivo  juego3d_v1_5\motor_juegos\far_terrain_lod.py
+OK     archivo  juego3d_v1_5\motor_juegos\forest_impostor_lod.py
+OK     archivo  juego3d_v1_5\motor_juegos\atmospheric_sky.py
+OK     archivo  juego3d_v1_5\motor_juegos\vegetation_preview.py
 OK     archivo  juego3d_v1_5\motor_juegos\obj_asset_loader.py
 OK     archivo  juego3d_v1_5\main_config.py
 OK     archivo  juego3d_v1_5\main_adaptive_quality.py
@@ -37,6 +43,7 @@ OK     archivo  juego3d_v1_5\main_combat_runtime.py
 OK     archivo  juego3d_v1_5\main_chunk_runtime.py
 OK     archivo  juego3d_v1_5\main_screens.py
 OK     archivo  juego3d_v1_5\probar_importador_obj.py
+OK     archivo  juego3d_v1_5\previsualizar_vegetacion_biomas.py
 OK     archivo  juego3d_v1_5\auditar_valores_reciclables.py
 OK     archivo  juego3d_v1_5\auditar_tamano_py.py
 OK     archivo  juego3d_v1_5\assets\models\obj_probe_crate.obj
@@ -60,23 +67,43 @@ Juego: FALTA Python con numpy, pygame y PyOpenGL
 Previews: OK
 Python previews: C:\Users\ramonisai\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe
 
+ACTUALIZACION
+------------
+stage=Stage40 Z - STABLE DISTANT PHOTO
+subtitle=Fondo lejano estable sin parpadeo
+description=Estabiliza el auto ahorro y bloquea candidatos lejanos para que el fondo no parpadee cuando el jugador esta quieto
+
 PRESET GRAFICO
 --------------
 preset=balanced
 confidence=low
-samples=219
-ignored_empty_startup_samples=9
-best_preset=balanced
+samples=549
+ignored_empty_startup_samples=18
+best_preset=high
 ready_presets=balanced,high
 missing_presets=low
 severe_drop_presets=balanced,high
 bottleneck_hint=Probable render/LOD: los tirones coinciden con muchos vertices visibles o chunks LOD, sin uploads altos. Revisar distancia, impostores y detalle lejano.
-reason=Mejor candidato parcial: balanced. Faltan muestras suficientes de: low.
+reason=Mejor candidato parcial: high. Faltan muestras suficientes de: low.
+
+VEGETACION
+----------
+Reporte: OK
+reporte_etapa=Stage40 Z - STABLE DISTANT PHOTO
+reporte_actualizado=SI
+cobertura_total=28.06%
+arboles=15.57%
+sotobosque=12.49%
+lectura=sano
+multiseed=estable
+cobertura_multiseed=25.86% - 28.16% promedio 27.38%
 
 RESUMEN
 -------
 Estructura: OK
 Preset sugerido: balanced
+Vegetacion: sano 28.06% multiseed estable reporte SI
+Actualizacion: Stage40 Z - STABLE DISTANT PHOTO
 
 SIGUIENTE PASO
 --------------
@@ -96,7 +123,7 @@ Faltan: pygame, PyOpenGL
 
 Si usas la opcion 6, el instalador verificara el Python destino al terminar.
 Si queda listo, podra guardar esa ruta para futuros lanzadores.
-Despues ejecuta otra vez la opcion 12 para confirmar.
+Despues ejecuta otra vez la opcion 13 para confirmar.
 
 Reporte guardado en:
 C:\Users\ramonisai\Downloads\JUEGO_1_6_STAGE33_F_FIRST_CHUNK_VISIBLE\JUEGO 1.6\juego3d_v1_5\logs\estado_rapido_juego.txt

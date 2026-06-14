@@ -5,13 +5,28 @@ set "ROOT=%~dp0"
 set "LOG_DIR=%ROOT%juego3d_v1_5\logs"
 set "REPORT=%LOG_DIR%\estado_rapido_juego.txt"
 set "PRESET_FILE=%LOG_DIR%\recommended_graphics_preset.txt"
+set "VEG_REPORT=%ROOT%juego3d_v1_5\previews\vegetation_biomes_report.txt"
+set "UPDATE_FILE=%LOG_DIR%\current_update_status.txt"
 set "FALTAN=0"
 set "JUEGO_OK=0"
 set "PREVIEW_OK=0"
+set "UPDATE_STAGE=unknown"
+set "UPDATE_SUBTITLE=unknown"
+set "UPDATE_DESCRIPTION=unknown"
 set "PRESET_RECOMMENDED=balanced"
 set "PRESET_CONFIDENCE=unknown"
 set "PRESET_SAMPLES=0"
 set "PRESET_MISSING=unknown"
+set "VEG_STATUS=sin_reporte"
+set "VEG_COVERAGE=unknown"
+set "VEG_TREES=unknown"
+set "VEG_UNDERSTORY=unknown"
+set "VEG_STABILITY=unknown"
+set "VEG_COVERAGE_MIN=unknown"
+set "VEG_COVERAGE_AVG=unknown"
+set "VEG_COVERAGE_MAX=unknown"
+set "VEG_REPORT_STAGE=unknown"
+set "VEG_REPORT_FRESH=unknown"
 
 if not exist "%LOG_DIR%" mkdir "%LOG_DIR%"
 
@@ -28,6 +43,7 @@ if exist "%ROOT%LANZAR_OPENGL.bat" (>> "%REPORT%" echo OK     archivo  LANZAR_OP
 if exist "%ROOT%LANZAR_OPENGL_RECOMENDADO.bat" (>> "%REPORT%" echo OK     archivo  LANZAR_OPENGL_RECOMENDADO.bat) else (>> "%REPORT%" echo FALTA  archivo  LANZAR_OPENGL_RECOMENDADO.bat & set /a FALTAN+=1)
 if exist "%ROOT%PROBAR_PRESETS_OPENGL.bat" (>> "%REPORT%" echo OK     archivo  PROBAR_PRESETS_OPENGL.bat) else (>> "%REPORT%" echo FALTA  archivo  PROBAR_PRESETS_OPENGL.bat & set /a FALTAN+=1)
 if exist "%ROOT%PROBAR_IMPORTADOR_OBJ.bat" (>> "%REPORT%" echo OK     archivo  PROBAR_IMPORTADOR_OBJ.bat) else (>> "%REPORT%" echo FALTA  archivo  PROBAR_IMPORTADOR_OBJ.bat & set /a FALTAN+=1)
+if exist "%ROOT%PREVISUALIZAR_VEGETACION_BIOMAS.bat" (>> "%REPORT%" echo OK     archivo  PREVISUALIZAR_VEGETACION_BIOMAS.bat) else (>> "%REPORT%" echo FALTA  archivo  PREVISUALIZAR_VEGETACION_BIOMAS.bat & set /a FALTAN+=1)
 if exist "%ROOT%AUDITAR_VALORES_RECICLABLES.bat" (>> "%REPORT%" echo OK     archivo  AUDITAR_VALORES_RECICLABLES.bat) else (>> "%REPORT%" echo FALTA  archivo  AUDITAR_VALORES_RECICLABLES.bat & set /a FALTAN+=1)
 if exist "%ROOT%AUDITAR_TAMANO_PY.bat" (>> "%REPORT%" echo OK     archivo  AUDITAR_TAMANO_PY.bat) else (>> "%REPORT%" echo FALTA  archivo  AUDITAR_TAMANO_PY.bat & set /a FALTAN+=1)
 if exist "%ROOT%VERIFICAR_ENTORNO_JUEGO.bat" (>> "%REPORT%" echo OK     archivo  VERIFICAR_ENTORNO_JUEGO.bat) else (>> "%REPORT%" echo FALTA  archivo  VERIFICAR_ENTORNO_JUEGO.bat & set /a FALTAN+=1)
@@ -39,6 +55,11 @@ if exist "%ROOT%juego3d_v1_5\motor_juegos\env_config.py" (>> "%REPORT%" echo OK 
 if exist "%ROOT%juego3d_v1_5\motor_juegos\chunk_math.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\motor_juegos\chunk_math.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\motor_juegos\chunk_math.py & set /a FALTAN+=1)
 if exist "%ROOT%juego3d_v1_5\motor_juegos\world_detail.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\motor_juegos\world_detail.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\motor_juegos\world_detail.py & set /a FALTAN+=1)
 if exist "%ROOT%juego3d_v1_5\motor_juegos\chunk_mesh_builder.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\motor_juegos\chunk_mesh_builder.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\motor_juegos\chunk_mesh_builder.py & set /a FALTAN+=1)
+if exist "%ROOT%juego3d_v1_5\motor_juegos\environment_legacy_draw.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\motor_juegos\environment_legacy_draw.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\motor_juegos\environment_legacy_draw.py & set /a FALTAN+=1)
+if exist "%ROOT%juego3d_v1_5\motor_juegos\far_terrain_lod.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\motor_juegos\far_terrain_lod.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\motor_juegos\far_terrain_lod.py & set /a FALTAN+=1)
+if exist "%ROOT%juego3d_v1_5\motor_juegos\forest_impostor_lod.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\motor_juegos\forest_impostor_lod.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\motor_juegos\forest_impostor_lod.py & set /a FALTAN+=1)
+if exist "%ROOT%juego3d_v1_5\motor_juegos\atmospheric_sky.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\motor_juegos\atmospheric_sky.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\motor_juegos\atmospheric_sky.py & set /a FALTAN+=1)
+if exist "%ROOT%juego3d_v1_5\motor_juegos\vegetation_preview.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\motor_juegos\vegetation_preview.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\motor_juegos\vegetation_preview.py & set /a FALTAN+=1)
 if exist "%ROOT%juego3d_v1_5\motor_juegos\obj_asset_loader.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\motor_juegos\obj_asset_loader.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\motor_juegos\obj_asset_loader.py & set /a FALTAN+=1)
 if exist "%ROOT%juego3d_v1_5\main_config.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\main_config.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\main_config.py & set /a FALTAN+=1)
 if exist "%ROOT%juego3d_v1_5\main_adaptive_quality.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\main_adaptive_quality.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\main_adaptive_quality.py & set /a FALTAN+=1)
@@ -55,6 +76,7 @@ if exist "%ROOT%juego3d_v1_5\main_combat_runtime.py" (>> "%REPORT%" echo OK     
 if exist "%ROOT%juego3d_v1_5\main_chunk_runtime.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\main_chunk_runtime.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\main_chunk_runtime.py & set /a FALTAN+=1)
 if exist "%ROOT%juego3d_v1_5\main_screens.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\main_screens.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\main_screens.py & set /a FALTAN+=1)
 if exist "%ROOT%juego3d_v1_5\probar_importador_obj.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\probar_importador_obj.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\probar_importador_obj.py & set /a FALTAN+=1)
+if exist "%ROOT%juego3d_v1_5\previsualizar_vegetacion_biomas.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\previsualizar_vegetacion_biomas.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\previsualizar_vegetacion_biomas.py & set /a FALTAN+=1)
 if exist "%ROOT%juego3d_v1_5\auditar_valores_reciclables.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\auditar_valores_reciclables.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\auditar_valores_reciclables.py & set /a FALTAN+=1)
 if exist "%ROOT%juego3d_v1_5\auditar_tamano_py.py" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\auditar_tamano_py.py) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\auditar_tamano_py.py & set /a FALTAN+=1)
 if exist "%ROOT%juego3d_v1_5\assets\models\obj_probe_crate.obj" (>> "%REPORT%" echo OK     archivo  juego3d_v1_5\assets\models\obj_probe_crate.obj) else (>> "%REPORT%" echo FALTA  archivo  juego3d_v1_5\assets\models\obj_probe_crate.obj & set /a FALTAN+=1)
@@ -104,6 +126,27 @@ if errorlevel 1 (
 )
 
 >> "%REPORT%" echo.
+>> "%REPORT%" echo ACTUALIZACION
+>> "%REPORT%" echo ------------
+if "%PREVIEW_OK%"=="1" (
+    pushd "%ROOT%juego3d_v1_5" >nul
+    "%JUEGO_PY_CMD%" -c "from motor_juegos.version_info import full_update_name, UPDATE_SUBTITLE, UPDATE_DESCRIPTION; print('stage=' + full_update_name()); print('subtitle=' + UPDATE_SUBTITLE); print('description=' + UPDATE_DESCRIPTION)" > "%UPDATE_FILE%" 2>nul
+    popd >nul
+    if exist "%UPDATE_FILE%" (
+        for /f "tokens=1,* delims==" %%A in ('type "%UPDATE_FILE%"') do (
+            if /i "%%A"=="stage" set "UPDATE_STAGE=%%B"
+            if /i "%%A"=="subtitle" set "UPDATE_SUBTITLE=%%B"
+            if /i "%%A"=="description" set "UPDATE_DESCRIPTION=%%B"
+        )
+        type "%UPDATE_FILE%" >> "%REPORT%"
+    ) else (
+        >> "%REPORT%" echo No se pudo leer motor_juegos\version_info.py
+    )
+) else (
+    >> "%REPORT%" echo No se pudo leer version_info.py porque falta Python para previews.
+)
+
+>> "%REPORT%" echo.
 >> "%REPORT%" echo PRESET GRAFICO
 >> "%REPORT%" echo --------------
 set JUEGO_PY_CMD=
@@ -129,6 +172,36 @@ if errorlevel 1 (
 )
 
 >> "%REPORT%" echo.
+>> "%REPORT%" echo VEGETACION
+>> "%REPORT%" echo ----------
+if exist "%VEG_REPORT%" (
+    for /f "tokens=1,* delims==" %%A in ('type "%VEG_REPORT%"') do (
+        if /i "%%A"=="update_stage" set "VEG_REPORT_STAGE=%%B"
+        if /i "%%A"=="cobertura_total" set "VEG_COVERAGE=%%B"
+        if /i "%%A"=="arboles" set "VEG_TREES=%%B"
+        if /i "%%A"=="sotobosque" set "VEG_UNDERSTORY=%%B"
+        if /i "%%A"=="lectura" set "VEG_STATUS=%%B"
+        if /i "%%A"=="stability" set "VEG_STABILITY=%%B"
+        if /i "%%A"=="coverage_min" set "VEG_COVERAGE_MIN=%%B"
+        if /i "%%A"=="coverage_avg" set "VEG_COVERAGE_AVG=%%B"
+        if /i "%%A"=="coverage_max" set "VEG_COVERAGE_MAX=%%B"
+    )
+    if "!VEG_REPORT_STAGE!"=="!UPDATE_STAGE!" (set "VEG_REPORT_FRESH=SI") else (set "VEG_REPORT_FRESH=NO")
+    >> "%REPORT%" echo Reporte: OK
+    >> "%REPORT%" echo reporte_etapa=!VEG_REPORT_STAGE!
+    >> "%REPORT%" echo reporte_actualizado=!VEG_REPORT_FRESH!
+    >> "%REPORT%" echo cobertura_total=!VEG_COVERAGE!
+    >> "%REPORT%" echo arboles=!VEG_TREES!
+    >> "%REPORT%" echo sotobosque=!VEG_UNDERSTORY!
+    >> "%REPORT%" echo lectura=!VEG_STATUS!
+    >> "%REPORT%" echo multiseed=!VEG_STABILITY!
+    >> "%REPORT%" echo cobertura_multiseed=!VEG_COVERAGE_MIN! - !VEG_COVERAGE_MAX! promedio !VEG_COVERAGE_AVG!
+) else (
+    >> "%REPORT%" echo Reporte: FALTA preview de vegetacion
+    >> "%REPORT%" echo Ejecuta INICIO_JUEGO.bat opcion 10 para generar vegetation_biomes_report.txt.
+)
+
+>> "%REPORT%" echo.
 >> "%REPORT%" echo RESUMEN
 >> "%REPORT%" echo -------
 if "%FALTAN%"=="0" (
@@ -137,6 +210,8 @@ if "%FALTAN%"=="0" (
     >> "%REPORT%" echo Estructura: Faltan %FALTAN% piezas.
 )
 >> "%REPORT%" echo Preset sugerido: %PRESET_RECOMMENDED%
+>> "%REPORT%" echo Vegetacion: %VEG_STATUS% %VEG_COVERAGE% multiseed %VEG_STABILITY% reporte %VEG_REPORT_FRESH%
+>> "%REPORT%" echo Actualizacion: %UPDATE_STAGE%
 >> "%REPORT%" echo.
 >> "%REPORT%" echo SIGUIENTE PASO
 >> "%REPORT%" echo --------------
@@ -160,7 +235,7 @@ if not "%JUEGO_OK%"=="1" (
     >> "%REPORT%" echo.
     >> "%REPORT%" echo Si usas la opcion 6, el instalador verificara el Python destino al terminar.
     >> "%REPORT%" echo Si queda listo, podra guardar esa ruta para futuros lanzadores.
-    >> "%REPORT%" echo Despues ejecuta otra vez la opcion 12 para confirmar.
+    >> "%REPORT%" echo Despues ejecuta otra vez la opcion 13 para confirmar.
 ) else if not "%PREVIEW_OK%"=="1" (
     >> "%REPORT%" echo Prioridad 1: revisar Python para previews de terreno.
     >> "%REPORT%" echo El juego puede abrir, pero las herramientas de vista previa no estan completas.
@@ -181,7 +256,7 @@ if not "%JUEGO_OK%"=="1" (
     >> "%REPORT%" echo.
     >> "%REPORT%" echo Si usas la opcion 6, el instalador verificara el Python destino al terminar.
     >> "%REPORT%" echo Si queda listo, podra guardar esa ruta para futuros lanzadores.
-    >> "%REPORT%" echo Despues ejecuta otra vez la opcion 12 para confirmar.
+    >> "%REPORT%" echo Despues ejecuta otra vez la opcion 13 para confirmar.
 ) else if not "%PRESET_CONFIDENCE%"=="ok" (
     >> "%REPORT%" echo Prioridad 1: completar comparacion de presets.
     >> "%REPORT%" echo Preset actual sugerido: %PRESET_RECOMMENDED% con confianza baja.

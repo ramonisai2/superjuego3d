@@ -1,4 +1,5 @@
 from OpenGL.GL import *
+import math
 import pygame
 
 _font = None
@@ -55,6 +56,48 @@ def draw_rect_2d(x, y, w, h, color=(1, 1, 1)):
     glVertex2f(x + w, y + h)
     glVertex2f(x, y + h)
     glEnd()
+    if has_alpha:
+        glDisable(GL_BLEND)
+
+
+def draw_rounded_rect_2d(x, y, w, h, radius=8, color=(1, 1, 1, 1)):
+    """Rectangulo redondeado barato para paneles del HUD."""
+    glDisable(GL_TEXTURE_2D)
+    radius = max(0.0, min(float(radius), float(w) * 0.5, float(h) * 0.5))
+    has_alpha = len(color) >= 4
+    if has_alpha:
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glColor4f(color[0], color[1], color[2], color[3])
+    else:
+        glColor3f(*color)
+
+    def quad(x0, y0, x1, y1):
+        glBegin(GL_QUADS)
+        glVertex2f(x0, y0)
+        glVertex2f(x1, y0)
+        glVertex2f(x1, y1)
+        glVertex2f(x0, y1)
+        glEnd()
+
+    quad(x + radius, y, x + w - radius, y + h)
+    quad(x, y + radius, x + w, y + h - radius)
+
+    segments = 8
+    corners = (
+        (x + radius, y + radius, 3.14159265, 4.71238898),
+        (x + w - radius, y + radius, 4.71238898, 6.28318531),
+        (x + w - radius, y + h - radius, 0.0, 1.57079633),
+        (x + radius, y + h - radius, 1.57079633, 3.14159265),
+    )
+    for cx, cy, a0, a1 in corners:
+        glBegin(GL_TRIANGLE_FAN)
+        glVertex2f(cx, cy)
+        for i in range(segments + 1):
+            t = a0 + (a1 - a0) * (i / segments)
+            glVertex2f(cx + math.cos(t) * radius, cy + math.sin(t) * radius)
+        glEnd()
+
     if has_alpha:
         glDisable(GL_BLEND)
 

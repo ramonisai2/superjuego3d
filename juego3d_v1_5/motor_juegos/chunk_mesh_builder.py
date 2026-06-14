@@ -3,6 +3,7 @@
 import math
 
 from .mesh_data import ChunkMeshData
+from .env_config import read_env_float
 from .world_detail import _world_detail_density
 def _shade_color(color, factor):
     return tuple(max(0.0, min(1.0, float(c) * factor)) for c in color)
@@ -74,6 +75,44 @@ def _add_deco_impostor_to_mesh(mesh, name, cx, cy, cz, width, height, color, col
         batch.add_quad(color2, (cx, y0, cz - half), (cx, y0, cz + half), (cx, y1, cz + half), (cx, y1, cz - half))
 
 
+TREE_TYPES = {
+    "arbol_bosque",
+    "arbol_pantano",
+    "arbol_seco",
+    "arbol_roble",
+    "arbol_pino",
+    "arbol_abedul",
+    "arbol_sauce",
+    "arbol_cipres",
+}
+
+
+def _add_branch_box(mesh, cx, cy, cz, sx, sy, sz, color):
+    _add_box_to_mesh(mesh, "tree_branches", cx, cy, cz, sx, sy, sz, color, "tree_trunk")
+
+
+def _add_branch_cluster(mesh, dx, dy, dz, top, trunk_color, scale=1.0, style="spread"):
+    if style == "willow":
+        _add_branch_box(mesh, dx - 0.34 * scale, top - 0.34 * scale, dz, 0.58 * scale, 0.12 * scale, 0.10 * scale, trunk_color)
+        _add_branch_box(mesh, dx + 0.36 * scale, top - 0.42 * scale, dz + 0.08 * scale, 0.54 * scale, 0.11 * scale, 0.10 * scale, trunk_color)
+        _add_branch_box(mesh, dx, top - 0.30 * scale, dz - 0.36 * scale, 0.10 * scale, 0.12 * scale, 0.58 * scale, trunk_color)
+        return
+    if style == "pine":
+        for k, yoff in enumerate((0.18, 0.58, 0.96)):
+            width = (0.78 - k * 0.14) * scale
+            _add_branch_box(mesh, dx, top + yoff * scale, dz, width, 0.10 * scale, 0.10 * scale, trunk_color)
+            _add_branch_box(mesh, dx, top + (yoff + 0.12) * scale, dz, 0.10 * scale, 0.10 * scale, width, trunk_color)
+        return
+    if style == "cypress":
+        _add_branch_box(mesh, dx - 0.18 * scale, top + 0.08 * scale, dz, 0.30 * scale, 0.10 * scale, 0.08 * scale, trunk_color)
+        _add_branch_box(mesh, dx + 0.16 * scale, top + 0.44 * scale, dz, 0.26 * scale, 0.09 * scale, 0.08 * scale, trunk_color)
+        _add_branch_box(mesh, dx, top + 0.76 * scale, dz - 0.15 * scale, 0.08 * scale, 0.08 * scale, 0.24 * scale, trunk_color)
+        return
+    _add_branch_box(mesh, dx - 0.42 * scale, top - 0.08 * scale, dz + 0.04 * scale, 0.72 * scale, 0.13 * scale, 0.11 * scale, trunk_color)
+    _add_branch_box(mesh, dx + 0.40 * scale, top + 0.12 * scale, dz - 0.03 * scale, 0.68 * scale, 0.12 * scale, 0.10 * scale, trunk_color)
+    _add_branch_box(mesh, dx + 0.04 * scale, top + 0.02 * scale, dz - 0.42 * scale, 0.10 * scale, 0.12 * scale, 0.70 * scale, trunk_color)
+
+
 def _add_tree_to_mesh(mesh, d_type, dx, dy, dz, variant):
     """Arbol boxel simplificado en MeshData.
 
@@ -83,6 +122,98 @@ def _add_tree_to_mesh(mesh, d_type, dx, dy, dz, variant):
     detail = _world_detail_density()
     tree_layers = int(detail.get("tree_layers", 2))
     low_tree = tree_layers <= 1
+    if d_type == "arbol_bosque":
+        d_type = "arbol_roble"
+    elif d_type == "arbol_pantano":
+        d_type = "arbol_sauce"
+
+    if d_type == "arbol_roble":
+        if not low_tree:
+            _add_shadow_to_mesh(mesh, dx, dy, dz, 2.25, 2.05, 0.13)
+        trunk = [0.35, 0.22, 0.12]
+        leaf_main = [0.10, 0.38, 0.13]
+        leaf_dark = [0.07, 0.28, 0.09]
+        leaf_light = [0.16, 0.48, 0.18]
+        alto = 2.95 if variant == "alto" else 2.58
+        _add_box_to_mesh(mesh, "tree_trunks", dx, dy, dz, 0.38, alto, 0.38, trunk, "tree_trunk")
+        top = dy + alto
+        if not low_tree:
+            _add_branch_cluster(mesh, dx, dy, dz, top, trunk, scale=1.0, style="spread")
+        _add_box_to_mesh(mesh, "tree_leaves_core", dx, top - 0.18, dz, 0.54, 0.34, 0.54, leaf_dark, "tree_leaf")
+        _add_leaf_impostor_to_mesh(mesh, dx, top + 0.28, dz, 2.05, 1.28, 1.86, leaf_main, leaf_dark, leaf_light)
+        if not low_tree:
+            _add_leaf_impostor_to_mesh(mesh, dx + 0.28, top + 0.72, dz - 0.12, 1.24, 0.66, 1.08, leaf_light, leaf_main, leaf_light)
+        return True
+
+    if d_type == "arbol_abedul":
+        if not low_tree:
+            _add_shadow_to_mesh(mesh, dx, dy, dz, 1.90, 1.75, 0.11)
+        trunk = [0.78, 0.76, 0.64]
+        bark_dark = [0.12, 0.12, 0.10]
+        leaf_main = [0.20, 0.50, 0.17]
+        leaf_dark = [0.10, 0.34, 0.10]
+        leaf_light = [0.38, 0.62, 0.22]
+        alto = 3.18 if variant == "alto" else 2.82
+        _add_box_to_mesh(mesh, "tree_trunks", dx, dy, dz, 0.28, alto, 0.28, trunk, "tree_trunk")
+        if not low_tree:
+            _add_branch_box(mesh, dx - 0.03, dy + 0.74, dz, 0.31, 0.08, 0.30, bark_dark)
+            _add_branch_box(mesh, dx + 0.04, dy + 1.55, dz, 0.30, 0.08, 0.28, bark_dark)
+        top = dy + alto
+        if not low_tree:
+            _add_branch_cluster(mesh, dx, dy, dz, top, bark_dark, scale=0.72, style="spread")
+        _add_leaf_impostor_to_mesh(mesh, dx, top + 0.26, dz, 1.48, 1.14, 1.34, leaf_main, leaf_dark, leaf_light)
+        _add_leaf_impostor_to_mesh(mesh, dx - 0.14, top + 0.78, dz + 0.10, 0.98, 0.58, 0.88, leaf_light, leaf_main, leaf_light)
+        return True
+
+    if d_type == "arbol_pino":
+        if not low_tree:
+            _add_shadow_to_mesh(mesh, dx, dy, dz, 1.75, 1.75, 0.10)
+        trunk = [0.30, 0.18, 0.10]
+        leaf_main = [0.06, 0.26, 0.12]
+        leaf_dark = [0.04, 0.18, 0.09]
+        leaf_light = [0.10, 0.34, 0.16]
+        alto = 3.55 if variant == "alto" else 3.20
+        _add_box_to_mesh(mesh, "tree_trunks", dx, dy, dz, 0.26, alto, 0.26, trunk, "tree_trunk")
+        top = dy + alto
+        if not low_tree:
+            _add_branch_cluster(mesh, dx, dy, dz, dy + 1.55, trunk, scale=0.95, style="pine")
+        _add_leaf_impostor_to_mesh(mesh, dx, dy + 2.20, dz, 1.90, 2.15, 1.72, leaf_main, leaf_dark, leaf_light)
+        _add_leaf_impostor_to_mesh(mesh, dx, top + 0.20, dz, 1.08, 1.26, 0.96, leaf_light, leaf_dark, leaf_light)
+        return True
+
+    if d_type == "arbol_sauce":
+        if not low_tree:
+            _add_shadow_to_mesh(mesh, dx, dy, dz, 2.25, 2.15, 0.15)
+        trunk = [0.24, 0.15, 0.09]
+        leaf_main = [0.13, 0.32, 0.12]
+        leaf_dark = [0.07, 0.22, 0.08]
+        leaf_light = [0.24, 0.44, 0.18]
+        alto = 2.48 if variant == "alto" else 2.24
+        _add_box_to_mesh(mesh, "tree_trunks", dx, dy, dz, 0.40, alto, 0.40, trunk, "tree_trunk")
+        top = dy + alto
+        if not low_tree:
+            _add_branch_cluster(mesh, dx, dy, dz, top, trunk, scale=1.12, style="willow")
+        _add_leaf_impostor_to_mesh(mesh, dx, top + 0.10, dz, 2.15, 1.35, 1.95, leaf_main, leaf_dark, leaf_light)
+        _add_leaf_impostor_to_mesh(mesh, dx - 0.20, top - 0.34, dz + 0.14, 1.24, 1.05, 1.08, leaf_dark, leaf_dark, leaf_main)
+        _add_leaf_impostor_to_mesh(mesh, dx + 0.22, top - 0.42, dz - 0.08, 1.10, 0.98, 1.02, leaf_dark, leaf_dark, leaf_main)
+        return True
+
+    if d_type == "arbol_cipres":
+        if not low_tree:
+            _add_shadow_to_mesh(mesh, dx, dy, dz, 1.55, 1.50, 0.12)
+        trunk = [0.20, 0.12, 0.08]
+        leaf_main = [0.04, 0.18, 0.08]
+        leaf_dark = [0.025, 0.11, 0.055]
+        leaf_light = [0.08, 0.25, 0.10]
+        alto = 3.35 if variant == "alto" else 3.02
+        _add_box_to_mesh(mesh, "tree_trunks", dx, dy, dz, 0.30, alto, 0.30, trunk, "tree_trunk")
+        top = dy + alto
+        if not low_tree:
+            _add_branch_cluster(mesh, dx, dy, dz, dy + 1.70, trunk, scale=0.90, style="cypress")
+        _add_leaf_impostor_to_mesh(mesh, dx, dy + 2.05, dz, 1.24, 2.55, 1.16, leaf_main, leaf_dark, leaf_light)
+        _add_leaf_impostor_to_mesh(mesh, dx, top + 0.42, dz, 0.66, 0.98, 0.62, leaf_light, leaf_dark, leaf_light)
+        return True
+
     if d_type == "arbol_bosque":
         if not low_tree:
             _add_shadow_to_mesh(mesh, dx, dy, dz, 2.15, 2.0, 0.13)
@@ -181,7 +312,7 @@ def _add_rock_to_mesh(mesh, bx, base_y, bz, sx, sy, sz, col):
 
 def _add_small_deco_to_mesh(mesh, d_type, dx, dy, dz, variant):
     """Migra decoracion y arboles a MeshData. Devuelve False si debe quedarse legacy."""
-    if d_type in ("arbol_bosque", "arbol_pantano", "arbol_seco"):
+    if d_type in TREE_TYPES:
         return _add_tree_to_mesh(mesh, d_type, dx, dy, dz, variant)
     if d_type == "hongo":
         _add_deco_impostor_to_mesh(mesh, "deco_mushrooms", dx, dy, dz, 0.14, 0.20, [0.90,0.86,0.72], [0.72,0.64,0.52], "plant")
@@ -208,6 +339,25 @@ def _add_small_deco_to_mesh(mesh, d_type, dx, dy, dz, variant):
         _add_deco_impostor_to_mesh(mesh, "deco_bushes", dx, dy, dz, 0.68, 0.42, [0.46,0.38,0.26], [0.34,0.26,0.16], "plant")
         _add_deco_impostor_to_mesh(mesh, "deco_bushes", dx-0.16, dy+0.08, dz+0.10, 0.42, 0.28, [0.38,0.30,0.18], [0.30,0.22,0.12], "plant")
         return True
+    if d_type == "junco":
+        _add_deco_impostor_to_mesh(mesh, "deco_reeds", dx, dy, dz, 0.22, 0.82, [0.34,0.48,0.18], [0.22,0.34,0.12], "plant")
+        _add_deco_impostor_to_mesh(mesh, "deco_reeds", dx+0.10, dy, dz-0.06, 0.16, 0.62, [0.42,0.55,0.20], [0.24,0.38,0.13], "plant")
+        return True
+    if d_type == "helecho":
+        _add_deco_impostor_to_mesh(mesh, "deco_ferns", dx, dy, dz, 0.76, 0.44, [0.10,0.42,0.16], [0.06,0.28,0.10], "plant")
+        _add_deco_impostor_to_mesh(mesh, "deco_ferns", dx-0.12, dy+0.04, dz+0.08, 0.54, 0.34, [0.14,0.50,0.18], [0.08,0.32,0.12], "plant")
+        return True
+    if d_type == "hierba_alta":
+        _add_deco_impostor_to_mesh(mesh, "deco_tall_grass", dx, dy, dz, 0.30, 0.70, [0.22,0.52,0.20], [0.14,0.38,0.14], "grass")
+        return True
+    if d_type == "flor_azul":
+        _add_deco_impostor_to_mesh(mesh, "deco_blue_flowers", dx, dy, dz, 0.18, 0.38, [0.16,0.42,0.18], [0.10,0.30,0.12], "plant")
+        _add_deco_impostor_to_mesh(mesh, "deco_blue_flowers", dx, dy+0.24, dz, 0.18, 0.10, [0.22,0.36,0.92], [0.12,0.20,0.62], "plant")
+        return True
+    if d_type == "maleza_oscura":
+        _add_deco_impostor_to_mesh(mesh, "deco_dark_underbrush", dx, dy, dz, 0.82, 0.52, [0.04,0.18,0.08], [0.025,0.11,0.05], "plant")
+        _add_deco_impostor_to_mesh(mesh, "deco_dark_underbrush", dx+0.16, dy+0.06, dz-0.10, 0.48, 0.36, [0.06,0.24,0.09], [0.03,0.14,0.05], "plant")
+        return True
     return False
 
 def build_chunk_mesh_data(cx, cz, quads, grass, rocks, deco, water=None, size=100, lod="detail", height_map=None):
@@ -226,10 +376,17 @@ def build_chunk_mesh_data(cx, cz, quads, grass, rocks, deco, water=None, size=10
         terrain_batch.add_quad(col, v0, v1, v2, v3)
 
     if water:
-        water_batch = mesh.batch("water", primitive="quads", material="water", alpha=0.34)
+        water_alpha = read_env_float("JUEGO_WATER_ALPHA", 0.20, 0.08, 0.55)
+        lake_alpha = read_env_float("JUEGO_WATER_IMPOSTOR_ALPHA", 0.24, 0.05, 0.55)
+        water_batch = mesh.batch("water", primitive="quads", material="water", alpha=water_alpha)
+        lake_batch = mesh.batch("lake_impostor", primitive="quads", material="water", alpha=lake_alpha)
         for item in water:
-            col, v0, v1, v2, v3 = item
-            water_batch.add_quad(tuple(col) + (0.34,), v0, v1, v2, v3)
+            if item and item[0] == "lake_impostor":
+                _kind, col, v0, v1, v2, v3 = item
+                lake_batch.add_quad(tuple(col) + (lake_alpha,), v0, v1, v2, v3)
+            else:
+                col, v0, v1, v2, v3 = item
+                water_batch.add_quad(tuple(col) + (water_alpha,), v0, v1, v2, v3)
 
     if grass:
         grass_batch = mesh.batch("grass", primitive="quads", material="grass", alpha=1.0)

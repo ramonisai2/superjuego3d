@@ -16,12 +16,13 @@ echo  6. Instalar dependencias
 echo  7. Configurar Python del juego
 echo  8. Administrar Python guardado
 echo  9. Previsualizar terreno
-echo 10. Log de movimiento OpenGL
-echo 11. Verificar estructura del proyecto
-echo 12. Estado rapido del proyecto
-echo 13. Probar importador OBJ
-echo 14. Auditar valores reciclables
-echo 15. Auditar tamano de archivos Python
+echo 10. Previsualizar vegetacion por bioma
+echo 11. Log de movimiento OpenGL
+echo 12. Verificar estructura del proyecto
+echo 13. Estado rapido del proyecto
+echo 14. Probar importador OBJ
+echo 15. Auditar valores reciclables
+echo 16. Auditar tamano de archivos Python
 echo  0. Salir
 echo.
 set /p OPCION=Elige una opcion: 
@@ -35,12 +36,13 @@ if "%OPCION%"=="6" goto instalar
 if "%OPCION%"=="7" goto configurar_python
 if "%OPCION%"=="8" goto administrar_python
 if "%OPCION%"=="9" goto preview
-if "%OPCION%"=="10" goto perf_log
-if "%OPCION%"=="11" goto verificar_estructura
-if "%OPCION%"=="12" goto estado_rapido
-if "%OPCION%"=="13" goto probar_obj
-if "%OPCION%"=="14" goto auditar_valores
-if "%OPCION%"=="15" goto auditar_tamano_py
+if "%OPCION%"=="10" goto preview_vegetacion
+if "%OPCION%"=="11" goto perf_log
+if "%OPCION%"=="12" goto verificar_estructura
+if "%OPCION%"=="13" goto estado_rapido
+if "%OPCION%"=="14" goto probar_obj
+if "%OPCION%"=="15" goto auditar_valores
+if "%OPCION%"=="16" goto auditar_tamano_py
 if "%OPCION%"=="0" exit /b 0
 goto menu
 
@@ -78,6 +80,10 @@ goto menu
 
 :preview
 call "%~dp0PREVISUALIZAR_TERRENO.bat"
+goto menu
+
+:preview_vegetacion
+call "%~dp0PREVISUALIZAR_VEGETACION_BIOMAS.bat"
 goto menu
 
 :perf_log
