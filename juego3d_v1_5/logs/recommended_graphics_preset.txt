@@ -1,7 +1,7 @@
 preset=balanced
 confidence=low
-samples=549
-ignored_empty_startup_samples=18
+samples=1199
+ignored_empty_startup_samples=33
 best_preset=high
 ready_presets=balanced,high
 missing_presets=low

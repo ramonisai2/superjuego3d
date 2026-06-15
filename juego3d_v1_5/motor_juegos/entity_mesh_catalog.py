@@ -123,6 +123,25 @@ class EntityMeshCatalog:
         self.register(StaticMeshInfo("mesh_player_boxel", "player", humanoid_parts), "player")
         self.register(StaticMeshInfo("mesh_npc_humanoid", "npc", humanoid_parts[:8]), "npc", "human", "humanoid")
 
+        self.register(StaticMeshInfo(
+            mesh_id="mesh_loose_stone_boxels",
+            kind="loose_stone",
+            parts=[
+                StaticBoxPart("core", (0, 0.055, 0), (0.22, 0.11, 0.17), "stone", (0.46, 0.46, 0.44)),
+                StaticBoxPart("chip_a", (0.088, 0.083, -0.050), (0.11, 0.055, 0.11), "stone", (0.40, 0.40, 0.39)),
+                StaticBoxPart("chip_b", (-0.072, 0.083, 0.060), (0.11, 0.055, 0.055), "stone", (0.52, 0.51, 0.48)),
+            ],
+        ), "loose_stone")
+
+        self.register(StaticMeshInfo(
+            mesh_id="mesh_stone_projectile_boxels",
+            kind="stone_projectile",
+            parts=[
+                StaticBoxPart("core", (0, 0, 0), (0.165, 0.165, 0.165), "stone", (0.40, 0.38, 0.34)),
+                StaticBoxPart("chip", (0.077, 0, -0.039), (0.055, 0.110, 0.055), "stone", (0.34, 0.33, 0.30)),
+            ],
+        ), "stone_projectile")
+
 
 DEFAULT_ENTITY_MESH_CATALOG = EntityMeshCatalog()
 

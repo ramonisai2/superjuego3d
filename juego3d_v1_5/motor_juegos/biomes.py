@@ -356,11 +356,24 @@ def calculate_terrain_properties_with_fields(x_array, z_array, seed):
     mesa_base = _neighbor_mean(elevation_final, radius=4)
     elevation_final = elevation_final * (1.0 - mesa_top * 0.38) + mesa_base * (mesa_top * 0.38) + mesa_lift * 0.48
 
-    # Llanuras jugables: suavizan la zona media sin borrar cuencas, cumbres ni mesetas.
+    # Llanuras jugables modernas: suavizan el centro, pero dejan borde organico.
+    # Asi el jugador tiene claros comodos sin convertir el mundo en una mesa.
     plain_gate = plain_strength * (1.0 - lake_floor_strength * 0.65) * (1.0 - mesa_top * 0.82) * (1.0 - peak_strength * 0.90)
-    plain_gate = np.clip(plain_gate, 0.0, 0.78)
-    plain_base = _neighbor_mean(elevation_final, radius=5)
-    elevation_final = elevation_final * (1.0 - plain_gate * 0.72) + plain_base * (plain_gate * 0.72)
+    plain_gate = np.clip(plain_gate, 0.0, 0.70)
+    plain_core = _smoothstep_np(0.42, 0.82, plain_gate)
+    plain_edge = _smoothstep_np(0.10, 0.34, plain_gate) * (1.0 - _smoothstep_np(0.44, 0.70, plain_gate))
+    plain_base = _neighbor_mean(elevation_final, radius=3)
+    playable_variation = (
+        np.sin(x_array * 0.031 + s * 1.7) * np.cos(z_array * 0.023 - s * 1.2) * 0.20
+        + np.sin((x_array - z_array) * 0.019 + s * 0.8) * 0.12
+    ) * plain_core
+    elevation_final = elevation_final * (1.0 - plain_core * 0.48) + plain_base * (plain_core * 0.48)
+    plain_rim_lift = plain_edge * (
+        0.56
+        + 0.34 * np.sin(x_array * 0.015 + z_array * 0.010 + s)
+        + 0.18 * np.cos(x_array * 0.021 - z_array * 0.018 - s)
+    )
+    elevation_final = elevation_final + playable_variation + np.maximum(0.0, plain_rim_lift)
 
     # Riachuelos de meseta: si una meseta es humeda/verde, sus bordes tallan
     # pequenas rutas de escorrentia como pasaria en laderas naturales.
@@ -416,6 +429,8 @@ def calculate_terrain_properties_with_fields(x_array, z_array, seed):
         "high_lake_basin": high_lake_basin,
         "mesa_strength": mesa_strength,
         "plain_strength": plain_strength,
+        "plain_core": plain_core,
+        "plain_edge": plain_edge,
     }
     return props, fields
 

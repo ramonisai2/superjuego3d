@@ -39,6 +39,42 @@ def _add_shadow_to_mesh(mesh, cx, cy, cz, sx, sz, alpha=0.12):
     batch.add_quad(col, (x0, y, z0), (x1, y, z0), (x1, y, z1), (x0, y, z1))
 
 
+def _add_ground_patch_to_mesh(mesh, name, cx, cy, cz, sx, sz, color):
+    batch = mesh.batch(name, primitive="quads", material="plant", alpha=1.0)
+    x0, x1 = cx - sx * 0.5, cx + sx * 0.5
+    z0, z1 = cz - sz * 0.5, cz + sz * 0.5
+    y = cy + 0.024
+    batch.add_quad(color, (x0, y, z0), (x1, y, z0), (x1, y, z1), (x0, y, z1))
+
+
+def _add_abandoned_camp_to_mesh(mesh, dx, dy, dz, variant):
+    dirt = [0.34, 0.25, 0.15]
+    dirt_dark = [0.23, 0.17, 0.11]
+    ash = [0.08, 0.075, 0.065]
+    ember = [0.40, 0.13, 0.06]
+    patches = (
+        (0.00, 0.00, 2.55, 2.10, dirt),
+        (-0.82, 0.02, 1.16, 1.44, _shade_color(dirt, 0.92)),
+        (0.78, -0.04, 1.20, 1.34, _shade_color(dirt, 0.88)),
+        (0.04, -0.86, 1.54, 0.84, dirt_dark),
+        (-0.05, 0.82, 1.44, 0.76, _shade_color(dirt, 0.95)),
+    )
+    for ox, oz, sx, sz, color in patches:
+        _add_ground_patch_to_mesh(mesh, "camp_dirt", dx + ox, dy, dz + oz, sx, sz, color)
+
+    _add_ground_patch_to_mesh(mesh, "camp_ash", dx, dy + 0.006, dz, 0.84, 0.56, ash)
+    _add_box_to_mesh(mesh, "camp_charred_wood", dx - 0.18, dy + 0.030, dz, 0.18, 0.10, 0.92, ash, "tree_trunk")
+    _add_box_to_mesh(mesh, "camp_charred_wood", dx + 0.22, dy + 0.032, dz + 0.02, 0.16, 0.09, 0.86, _shade_color(ash, 1.18), "tree_trunk")
+    _add_box_to_mesh(mesh, "camp_charred_wood", dx + 0.02, dy + 0.034, dz - 0.20, 0.78, 0.08, 0.15, _shade_color(ash, 0.85), "tree_trunk")
+    _add_box_to_mesh(mesh, "camp_embers", dx + 0.10, dy + 0.052, dz + 0.05, 0.12, 0.035, 0.10, ember, "tree_trunk")
+
+    if str(variant) == "con_bolsa":
+        bx, bz = dx + 0.74, dz - 0.62
+        _add_box_to_mesh(mesh, "camp_empty_bag", bx, dy + 0.035, bz, 0.46, 0.20, 0.34, [0.48,0.34,0.18], "tree_trunk")
+        _add_box_to_mesh(mesh, "camp_empty_bag", bx - 0.12, dy + 0.22, bz, 0.18, 0.10, 0.28, [0.36,0.24,0.13], "tree_trunk")
+        _add_box_to_mesh(mesh, "camp_empty_bag", bx + 0.03, dy + 0.245, bz, 0.34, 0.055, 0.07, [0.25,0.17,0.10], "tree_trunk")
+
+
 def _add_leaf_impostor_to_mesh(mesh, cx, cy, cz, width, height, depth, main_color, dark_color=None, light_color=None):
     """Copa tipo billboard: pocos planos cruzados en vez de muchas cajas."""
     batch = mesh.batch("tree_leaf_impostors", primitive="quads", material="tree_leaf", alpha=1.0)
@@ -314,6 +350,9 @@ def _add_small_deco_to_mesh(mesh, d_type, dx, dy, dz, variant):
     """Migra decoracion y arboles a MeshData. Devuelve False si debe quedarse legacy."""
     if d_type in TREE_TYPES:
         return _add_tree_to_mesh(mesh, d_type, dx, dy, dz, variant)
+    if d_type == "campamento_abandonado":
+        _add_abandoned_camp_to_mesh(mesh, dx, dy, dz, variant)
+        return True
     if d_type == "hongo":
         _add_deco_impostor_to_mesh(mesh, "deco_mushrooms", dx, dy, dz, 0.14, 0.20, [0.90,0.86,0.72], [0.72,0.64,0.52], "plant")
         _add_deco_impostor_to_mesh(mesh, "deco_mushrooms", dx, dy+0.12, dz, 0.30, 0.13, [0.85,0.15,0.15], [0.62,0.08,0.10], "plant")
@@ -407,6 +446,8 @@ def build_chunk_mesh_data(cx, cz, quads, grass, rocks, deco, water=None, size=10
 
     for item in (deco or []):
         try:
+            if item and item[0] == "piedra_suelta":
+                continue
             if not _add_small_deco_to_mesh(mesh, *item):
                 # Decoracion compleja no migrada queda legacy por ahora.
                 mesh.legacy_deco.append(item)

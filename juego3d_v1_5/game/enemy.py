@@ -51,6 +51,7 @@ class Enemy:
         self.knockback_x = 0.0
         self.knockback_z = 0.0
         self.knockback_timer = 0.0
+        self.hit_flash_timer = 0.0
 
     def lock_spawn_biome_color(self, seed=None):
         """Fija el color del slime según el bioma donde nació."""
@@ -94,6 +95,7 @@ class Enemy:
     def take_hit(self, damage=1, source_x=None, source_z=None):
         self.hit_points -= damage
         self.health = self.hit_points
+        self.hit_flash_timer = 0.18
         if source_x is not None and source_z is not None:
             dx = self.x - source_x
             dz = self.z - source_z
@@ -145,6 +147,7 @@ class Enemy:
                 self.squish_phase += dt * 8.0
         else:
             self.squish_phase += dt * 3.0
+        self.hit_flash_timer = max(0.0, float(getattr(self, "hit_flash_timer", 0.0)) - dt)
 
         if self.terrain_height_func:
             suelo_y = self.terrain_height_func(self.x, self.z)
@@ -161,6 +164,9 @@ class Enemy:
         else:
             color = self.color
             scale = getattr(self, "body_scale", 1.0)
+        flash = max(0.0, min(1.0, float(getattr(self, "hit_flash_timer", 0.0)) / 0.18))
+        if flash > 0.0:
+            color = tuple(min(1.0, c + (1.0 - c) * flash * 0.85) for c in color)
         render_voxel_slime(
             self.x, base_y, self.z,
             yaw=self.yaw,

@@ -1,31 +1,22 @@
-"""Relieve lejano real basado en la misma generacion del mundo.
+"""Relieve lejano real con apoyo barato de monticulos y cordilleras suaves.
 
-Este modulo no dibuja montanas falsas: genera parches lejanos con el mismo seed
-y las mismas funciones de terreno que usan los chunks cercanos. No tiene
-colision ni recursos; solo silueta barata para que el horizonte no sea una mesa
-vacia. Los parches son grandes a proposito: el jugador necesita lectura de
-bioma y relieve, no baldosas finas fuera de la zona jugable.
+Los parches lejanos usan la generacion real como base y una capa procedural
+suave para que el horizonte tenga silueta sin calcular chunks completos.
 """
 
 try:
     from OpenGL.GL import *
 except ModuleNotFoundError:
-    # Permite compilar/auditar sin PyOpenGL instalado.
     pass
 import math
-
 import numpy as np
-
 from . import biomes
 from .env_config import read_env_bool, read_env_float, read_env_int
 
 
 _far_tile_cache = {}
 _far_tile_order = []
-_last_candidate_lock = {
-    "key": None,
-    "candidates": None,
-}
+_last_candidate_lock = {"key": None, "candidates": None}
 _stats = {
     "enabled": 0,
     "tiles_visible": 0,
@@ -36,6 +27,9 @@ _stats = {
     "max_visible": 0,
     "radius": 0,
     "height_scale": 0.0,
+    "mound_amp": 0.0,
+    "ridge_amp": 0.0,
+    "terrain_blend": 0.0,
 }
 
 
@@ -66,6 +60,12 @@ def draw_far_terrain_lod(env_module, px, py, pz, seed, rescue=None):
     max_cache = read_env_int("JUEGO_FAR_TERRAIN_CACHE_LIMIT", 80, 16, 160)
     max_visible = read_env_int("JUEGO_FAR_TERRAIN_MAX_VISIBLE", 64, 8, 96)
     max_visible = max(8, int(round(max_visible * float(rescue.get("far_max_visible_scale", 1.0)))))
+
+    mound_amplitude = read_env_float("JUEGO_FAR_TERRAIN_MOUND_AMP", 6.0, 2.0, 18.0)
+    mound_frequency = read_env_float("JUEGO_FAR_TERRAIN_MOUND_FREQ", 3.0, 1.0, 8.0)
+    ridge_amplitude = read_env_float("JUEGO_FAR_TERRAIN_RIDGE_AMP", 10.0, 4.0, 25.0)
+    ridge_frequency = read_env_float("JUEGO_FAR_TERRAIN_RIDGE_FREQ", 0.8, 0.3, 2.0)
+    terrain_blend = read_env_float("JUEGO_FAR_TERRAIN_BLEND", 0.68, 0.0, 1.0)
 
     center_tx = int(math.floor(float(px) / tile_size))
     center_tz = int(math.floor(float(pz) / tile_size))
@@ -99,12 +99,18 @@ def draw_far_terrain_lod(env_module, px, py, pz, seed, rescue=None):
             round(float(tile_size), 3), round(float(sink), 3),
             round(float(height_scale), 3), round(float(height_base), 3),
             round(float(vertical_lift), 3), round(float(haze), 3),
+            round(float(mound_amplitude), 3),
+            round(float(mound_frequency), 3),
+            round(float(ridge_amplitude), 3),
+            round(float(ridge_frequency), 3),
+            round(float(terrain_blend), 3),
         )
         tile = _far_tile_cache.get(key)
         if tile is None and built < build_budget:
             tile = _build_far_tile(
                 env_module, tx, tz, tile_size, subdivisions, seed, sink,
                 height_scale, height_base, vertical_lift, haze, softness, ring, inner_radius,
+                mound_amplitude, mound_frequency, ridge_amplitude, ridge_frequency, terrain_blend,
             )
             _far_tile_cache[key] = tile
             _far_tile_order.append(key)
@@ -126,12 +132,16 @@ def draw_far_terrain_lod(env_module, px, py, pz, seed, rescue=None):
         "height_scale": round(float(height_scale), 2),
         "rescue_level": int(rescue.get("level", 0) or 0),
         "softness": round(float(softness), 2),
+        "mound_amp": round(mound_amplitude, 2),
+        "ridge_amp": round(ridge_amplitude, 2),
+        "terrain_blend": round(float(terrain_blend), 2),
     })
 
 
 def _build_far_tile(
     env_module, tx, tz, tile_size, subdivisions, seed, horizon_sink,
     height_scale, height_base, vertical_lift, haze, softness, ring, inner_radius,
+    mound_amp, mound_freq, ridge_amp, ridge_freq, terrain_blend,
 ):
     x0 = float(tx) * float(tile_size)
     z0 = float(tz) * float(tile_size)
@@ -140,29 +150,61 @@ def _build_far_tile(
     xs = x0 + np.arange(subdivisions + 1, dtype=float) * step
     zs = z0 + np.arange(subdivisions + 1, dtype=float) * step
     gx, gz = np.meshgrid(xs, zs, indexing="ij")
-    terrain_props, _terrain_fields = env_module.calculate_runtime_terrain_properties_with_fields(gx, gz, seed)
+    terrain_props, _ = env_module.calculate_runtime_terrain_properties_with_fields(gx, gz, seed)
     h_map, m_map, c_map, temp_map, rareza_map = terrain_props
+
+    mound_wave = (math.tau * float(mound_freq)) / max(float(tile_size), 1.0)
+    ridge_wave = (math.tau * float(ridge_freq)) / max(float(tile_size), 1.0)
+    mound_heights = (
+        np.sin(gx * mound_wave * 0.9 + gz * mound_wave * 0.55)
+        * np.cos(gz * mound_wave * 0.8 - gx * mound_wave * 0.35)
+        + 0.45 * np.sin(gx * mound_wave * 1.55 + gz * mound_wave * 1.2 + 1.7)
+    ) * (float(mound_amp) / 1.45)
+    ridge_heights = (
+        np.sin(gx * ridge_wave * 0.65 + gz * ridge_wave * 0.28)
+        + 0.35 * np.sin(gx * ridge_wave * 1.05 - gz * ridge_wave * 0.82 + 1.8)
+    ) * (float(ridge_amp) / 1.35)
+    combined_heights = mound_heights + ridge_heights
 
     list_id = glGenLists(1)
     glNewList(list_id, GL_COMPILE)
     glBegin(GL_QUADS)
     for i in range(subdivisions):
         for j in range(subdivisions):
-            h00 = _far_height(h_map[i, j], height_base, height_scale, vertical_lift, horizon_sink)
-            h10 = _far_height(h_map[i + 1, j], height_base, height_scale, vertical_lift, horizon_sink)
-            h11 = _far_height(h_map[i + 1, j + 1], height_base, height_scale, vertical_lift, horizon_sink)
-            h01 = _far_height(h_map[i, j + 1], height_base, height_scale, vertical_lift, horizon_sink)
+            raw_h00 = h_map[i, j]
+            raw_h10 = h_map[i + 1, j]
+            raw_h11 = h_map[i + 1, j + 1]
+            raw_h01 = h_map[i, j + 1]
+
+            h00_base = _far_height(raw_h00, height_base, height_scale, vertical_lift, horizon_sink)
+            h10_base = _far_height(raw_h10, height_base, height_scale, vertical_lift, horizon_sink)
+            h11_base = _far_height(raw_h11, height_base, height_scale, vertical_lift, horizon_sink)
+            h01_base = _far_height(raw_h01, height_base, height_scale, vertical_lift, horizon_sink)
+
+            hill00 = combined_heights[i, j]
+            hill10 = combined_heights[i + 1, j]
+            hill11 = combined_heights[i + 1, j + 1]
+            hill01 = combined_heights[i, j + 1]
+
+            h00 = h00_base * terrain_blend + hill00 * (1.0 - terrain_blend)
+            h10 = h10_base * terrain_blend + hill10 * (1.0 - terrain_blend)
+            h11 = h11_base * terrain_blend + hill11 * (1.0 - terrain_blend)
+            h01 = h01_base * terrain_blend + hill01 * (1.0 - terrain_blend)
+
             avg_h = (h00 + h10 + h11 + h01) * 0.25
             avg_m = float((m_map[i, j] + m_map[i + 1, j] + m_map[i + 1, j + 1] + m_map[i, j + 1]) * 0.25)
             avg_temp = float((temp_map[i, j] + temp_map[i + 1, j] + temp_map[i + 1, j + 1] + temp_map[i, j + 1]) * 0.25)
             avg_rareza = float((rareza_map[i, j] + rareza_map[i + 1, j] + rareza_map[i + 1, j + 1] + rareza_map[i, j + 1]) * 0.25)
             es_cueva = bool(c_map[i, j])
             color, *_ = biomes.get_biome_color_and_features(avg_h, avg_m, es_cueva, avg_temp, avg_rareza)
+
             distance_softness = max(0.0, float(ring) - float(inner_radius)) * float(softness)
             shade = _slope_shade(h00, h10, h11, h01, distance_softness)
             height_tint = max(0.0, min(1.0, (avg_h - 7.0) / 14.0))
-            col = _far_color(color, shade, height_tint, haze + distance_softness * 0.34, distance_softness)
+            final_haze = min(0.7, haze + 0.1 * distance_softness)
+            col = _far_color(color, shade, height_tint, final_haze, distance_softness)
             glColor3f(col[0], col[1], col[2])
+
             glVertex3f(float(gx[i, j]), h00, float(gz[i, j]))
             glVertex3f(float(gx[i + 1, j]), h10, float(gz[i + 1, j]))
             glVertex3f(float(gx[i + 1, j + 1]), h11, float(gz[i + 1, j + 1]))

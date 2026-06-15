@@ -6,7 +6,7 @@ from motor_juegos.atmospheric_sky import current_sky_profile, set_sky_rescue_lev
 from motor_juegos.far_terrain_lod import draw_far_terrain_lod, far_terrain_stats
 from motor_juegos.forest_impostor_lod import draw_forest_impostor_lod, forest_impostor_stats
 from motor_juegos.render_api import FogConfig
-from game.voxel_models import render_player_avatar, render_first_person_weapon
+from game.voxel_models import BOXEL_UNIT, draw_boxel, render_player_avatar, render_first_person_weapon
 
 
 def render_runtime_3d(
@@ -25,6 +25,7 @@ def render_runtime_3d(
     adaptive_streaming,
     world_detail_debug_status,
     resource_amount_func,
+    resource_runtime,
     player,
     enemies,
     npcs,
@@ -201,15 +202,32 @@ def render_runtime_3d(
             if locked:
                 z_target_screen = _world_to_screen(render_backend, npc.x, npc.y + 2.1, npc.z)
 
-        for idx, proj in enumerate(stone_projectiles):
-            render_graph.add_entity(f"stone_projectile_{idx}", proj, render_fn=lambda proj=proj: proj.render(), transparent=False)
+        for proj in stone_projectiles:
+            render_graph.add_entity("stone_projectile", proj, render_fn=lambda proj=proj: proj.render(), transparent=False)
+
+        if resource_runtime and hasattr(resource_runtime, "iter_loose_stones_near"):
+            loose_stone_distance = min(float(entity_distance), 72.0)
+            loose_stones_visible = 0
+            for stone in resource_runtime.iter_loose_stones_near(px, pz, max_distance=loose_stone_distance, max_count=72):
+                sx, sy, sz, variant = stone
+                if env.is_point_visible_for_render(sx, sz, px, pz, lx, lz, max_distance=loose_stone_distance):
+                    stone_ref = _LooseStoneRef(sx, sy, sz, variant)
+                    render_graph.add_entity(
+                        "loose_stone",
+                        stone_ref,
+                        render_fn=lambda stone_ref=stone_ref: _render_loose_stone(stone_ref),
+                        transparent=False,
+                        priority=-2,
+                    )
+                    loose_stones_visible += 1
+            render_stats["loose_stones_visible"] = loose_stones_visible
 
     render_graph.execute(render_backend, render_stats)
     render_stats.update(render_graph.as_stats())
     if getattr(player, "camera_mode", "first") == "first":
         render_first_person_weapon(
             px, py, pz, lx, ly, lz,
-            weapon_key=player.weapon_key() if hasattr(player, "weapon_key") else None,
+            weapon_key=player.visible_weapon_key() if hasattr(player, "visible_weapon_key") else (player.weapon_key() if hasattr(player, "weapon_key") else None),
             attack_swing=player.attack_swing_value() if hasattr(player, "attack_swing_value") else 0.0,
         )
 
@@ -225,6 +243,31 @@ def _world_tint_from_sky(profile):
     if dawn_alpha > night_alpha * 0.65:
         return (0.95, 0.30, 0.10, dawn_alpha)
     return (0.02, 0.045, 0.13, night_alpha)
+
+
+class _LooseStoneRef:
+    def __init__(self, x, y, z, variant):
+        self.x = float(x)
+        self.y = float(y)
+        self.z = float(z)
+        self.variant = str(variant)
+        self.body_scale = 0.18
+
+
+def _render_loose_stone(stone):
+    colors = {
+        "oscura": (0.34, 0.34, 0.35),
+        "clara": (0.58, 0.57, 0.52),
+        "gris": (0.46, 0.46, 0.44),
+    }
+    col = colors.get(getattr(stone, "variant", "gris"), colors["gris"])
+    wobble = abs((stone.x * 7.13 + stone.z * 3.71) % 1.0)
+    base_y = stone.y + BOXEL_UNIT
+    draw_boxel(stone.x, base_y, stone.z, 4, 2, 3, col)
+    if wobble > 0.28:
+        draw_boxel(stone.x + BOXEL_UNIT * 1.6, base_y + BOXEL_UNIT * 0.5, stone.z - BOXEL_UNIT * 0.9, 2, 1, 2, col)
+    if wobble < 0.72:
+        draw_boxel(stone.x - BOXEL_UNIT * 1.3, base_y + BOXEL_UNIT * 0.5, stone.z + BOXEL_UNIT * 1.1, 2, 1, 1, col)
 
 
 def _world_to_screen(render_backend, x, y, z):
@@ -307,7 +350,7 @@ def _add_player_to_render_graph(render_graph, player):
             walk_phase=getattr(player, "walk_phase", 0.0),
             move_amount=getattr(player, "move_amount", 0.0),
             swimming=getattr(player, "is_swimming", False),
-            held_weapon=player.weapon_key() if hasattr(player, "weapon_key") else None,
+            held_weapon=player.visible_weapon_key() if hasattr(player, "visible_weapon_key") else (player.weapon_key() if hasattr(player, "weapon_key") else None),
             attack_swing=player.attack_swing_value() if hasattr(player, "attack_swing_value") else 0.0,
         ),
         transparent=False, priority=-5

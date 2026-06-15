@@ -64,14 +64,19 @@ class Player(FirstPersonCamera):
         self.inventory = {"piedra": 0, "madera": 0, "fibra": 0}
         self.bag_name = "mochila basica"
         self.bag_capacity = 18
+        self.collected_empty_bag_keys = set()
         self.last_pickup_message = ""
         self.last_pickup_time = 0.0
+        self.last_sprint_pickup_notice = -9999.0
         self.pickup_notices = []
+        self.combat_notices = []
+        self.is_sprinting = False
         self.active_weapon = None
         self.last_craft_message = ""
         self.last_craft_time = 0.0
         self.attack_swing_timer = 0.0
         self.attack_swing_duration = 0.26
+        self.attack_action = "idle"
         self.terrain_func = terrain_height_func
         self.respawn_x = x
         self.respawn_z = z
@@ -108,6 +113,13 @@ class Player(FirstPersonCamera):
     def inventory_free(self):
         return max(0, int(self.bag_capacity) - self.inventory_used())
 
+    def expand_bag_capacity(self, amount=2, source="bolsa vacia"):
+        gain = max(1, int(amount))
+        self.bag_capacity = max(1, int(self.bag_capacity)) + gain
+        self.last_pickup_message = f"+{gain} espacio"
+        self.push_pickup_notice(f"{source}: +{gain}", kind="bag", ttl=2.0)
+        return gain
+
     def push_pickup_notice(self, text, kind="resource", ttl=1.8):
         notice = {
             "text": str(text),
@@ -120,11 +132,26 @@ class Player(FirstPersonCamera):
             del self.pickup_notices[:-4]
         return notice
 
+    def push_combat_notice(self, text, kind="combat", ttl=0.9):
+        notice = {
+            "text": str(text),
+            "kind": str(kind),
+            "ttl": float(ttl),
+            "max_ttl": float(ttl),
+        }
+        self.combat_notices.append(notice)
+        if len(self.combat_notices) > 3:
+            del self.combat_notices[:-3]
+        return notice
+
     def update_pickup_notices(self, dt):
         dt = max(0.0, float(dt))
         for notice in self.pickup_notices:
             notice["ttl"] = max(0.0, float(notice.get("ttl", 0.0)) - dt)
         self.pickup_notices = [notice for notice in self.pickup_notices if notice.get("ttl", 0.0) > 0.0]
+        for notice in self.combat_notices:
+            notice["ttl"] = max(0.0, float(notice.get("ttl", 0.0)) - dt)
+        self.combat_notices = [notice for notice in self.combat_notices if notice.get("ttl", 0.0) > 0.0]
 
     def add_item(self, item, amount=1):
         self.normalize_inventory()
@@ -173,6 +200,11 @@ class Player(FirstPersonCamera):
     def weapon_key(self):
         weapon = self.active_weapon if isinstance(self.active_weapon, dict) else None
         return weapon.get("key") if weapon else "mano"
+
+    def visible_weapon_key(self):
+        if self.attack_action == "throw" and self.attack_swing_timer > 0.0:
+            return "mano"
+        return self.weapon_key()
 
     def normalize_active_weapon(self):
         if not isinstance(self.active_weapon, dict):
@@ -288,11 +320,14 @@ class Player(FirstPersonCamera):
         self.active_weapon["uses"] = uses
         return self.weapon_info()
 
-    def start_attack_swing(self):
+    def start_attack_swing(self, action="melee"):
+        self.attack_action = str(action or "melee")
         self.attack_swing_timer = float(self.attack_swing_duration)
 
     def update_attack_animation(self, dt):
         self.attack_swing_timer = max(0.0, float(self.attack_swing_timer) - max(0.0, float(dt)))
+        if self.attack_swing_timer <= 0.0:
+            self.attack_action = "idle"
 
     def attack_swing_value(self):
         duration = max(0.01, float(self.attack_swing_duration))

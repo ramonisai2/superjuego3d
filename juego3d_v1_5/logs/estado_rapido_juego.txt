@@ -1,5 +1,5 @@
 JUEGO 1.6 - ESTADO RAPIDO
-Fecha: 14/06/2026  7:27:34.64
+Fecha: 14/06/2026 22:50:29.58
 
 ESTRUCTURA PRINCIPAL
 --------------------
@@ -69,16 +69,16 @@ Python previews: C:\Users\ramonisai\.cache\codex-runtimes\codex-primary-runtime\
 
 ACTUALIZACION
 ------------
-stage=Stage40 Z - STABLE DISTANT PHOTO
-subtitle=Fondo lejano estable sin parpadeo
-description=Estabiliza el auto ahorro y bloquea candidatos lejanos para que el fondo no parpadee cuando el jugador esta quieto
+stage=Stage41 A - DISTANT IMPOSTOR RING WORLD TINT
+subtitle=Impostores mas lejos y noche con color
+description=Aleja impostores de bosque y parches lejanos, y agrega tinte global barato para noche y atardecer
 
 PRESET GRAFICO
 --------------
 preset=balanced
 confidence=low
-samples=549
-ignored_empty_startup_samples=18
+samples=1199
+ignored_empty_startup_samples=33
 best_preset=high
 ready_presets=balanced,high
 missing_presets=low
@@ -89,7 +89,7 @@ reason=Mejor candidato parcial: high. Faltan muestras suficientes de: low.
 VEGETACION
 ----------
 Reporte: OK
-reporte_etapa=Stage40 Z - STABLE DISTANT PHOTO
+reporte_etapa=Stage41 A - DISTANT IMPOSTOR RING WORLD TINT
 reporte_actualizado=SI
 cobertura_total=28.06%
 arboles=15.57%
@@ -103,7 +103,7 @@ RESUMEN
 Estructura: OK
 Preset sugerido: balanced
 Vegetacion: sano 28.06% multiseed estable reporte SI
-Actualizacion: Stage40 Z - STABLE DISTANT PHOTO
+Actualizacion: Stage41 A - DISTANT IMPOSTOR RING WORLD TINT
 
 SIGUIENTE PASO
 --------------

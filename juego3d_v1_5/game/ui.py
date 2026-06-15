@@ -29,7 +29,7 @@ def draw_bag_status_icon(player, x, y):
     free = player.inventory_free() if hasattr(player, "inventory_free") else 1
     active = notices[-1] if notices else None
     active_kind = active.get("kind") if active else None
-    collecting = active_kind in ("piedra", "madera", "fibra")
+    collecting = active_kind in ("piedra", "madera", "fibra", "bag")
     full = free <= 0 or active_kind == "full"
     blink = True
     if active:
@@ -154,7 +154,9 @@ def draw_pickup_notices(player):
         "piedra": (210, 215, 220),
         "madera": (225, 180, 115),
         "fibra": (165, 235, 155),
+        "bag": (170, 220, 255),
         "full": (255, 170, 130),
+        "blocked": (255, 220, 135),
     }
     for idx, notice in enumerate(visible):
         ttl = float(notice.get("ttl", 0.0))
@@ -163,6 +165,29 @@ def draw_pickup_notices(player):
         base = colors.get(notice.get("kind"), (230, 230, 210))
         color = tuple(max(0, min(255, int(c * fade))) for c in base)
         r2d.draw_text_2d(_clip(notice.get("text", ""), 18), x + 12, y + 12 + idx * 24, color)
+
+
+def draw_combat_notices(player, ancho=1280, alto=720):
+    notices = getattr(player, "combat_notices", [])
+    if not notices:
+        return
+    visible = list(notices)[-2:]
+    w = 168
+    h = 16 + len(visible) * 22
+    x = int(ancho // 2 - w // 2)
+    y = int(alto - 118 - len(visible) * 10)
+    _panel(x, y, w, h)
+    colors = {
+        "piedra": (220, 225, 230),
+        "combat": (255, 220, 150),
+    }
+    for idx, notice in enumerate(visible):
+        ttl = float(notice.get("ttl", 0.0))
+        max_ttl = max(0.01, float(notice.get("max_ttl", 1.0)))
+        fade = max(0.35, min(1.0, ttl / max_ttl))
+        base = colors.get(notice.get("kind"), (235, 230, 210))
+        color = tuple(max(0, min(255, int(c * fade))) for c in base)
+        r2d.draw_text_2d(_clip(notice.get("text", ""), 18), x + 12, y + 10 + idx * 22, color)
 
 
 def draw_npc_ai_telemetry():
@@ -220,7 +245,7 @@ def draw_npc_world_label(name, x, y):
 
 
 
-def draw_z_target_ui(target, target_type):
+def draw_z_target_ui(target, target_type, player=None):
     if target is None:
         return
 
@@ -228,7 +253,14 @@ def draw_z_target_ui(target, target_type):
         name = "SLIME FIJADO"
         hp = max(0, getattr(target, "health", 0))
         max_hp = max(1, getattr(target, "max_health", 2))
-        subtitle = f"Vida: {hp}/{max_hp}"
+        stones = 0
+        if player is not None:
+            try:
+                inv = player.normalize_inventory() if hasattr(player, "normalize_inventory") else getattr(player, "inventory", {})
+                stones = int(inv.get("piedra", 0))
+            except Exception:
+                stones = 0
+        subtitle = f"Vida: {hp}/{max_hp}   Piedras: {stones}"
         color = (255, 120, 120)
         ratio = max(0.0, min(1.0, hp / max_hp))
     else:

@@ -15,7 +15,7 @@ from game.player import Player
 from game.enemy import Enemy, SlimeRemnant
 from game.projectiles import entity_alive
 from game.npc_manager import NPC
-from game.ui import draw_ui, draw_world_context, draw_npc_label, draw_npc_prompt, draw_npc_description, draw_npc_dialog, draw_npc_world_label, draw_z_target_ui, draw_z_target_marker, draw_npc_ai_telemetry, draw_pickup_notices, draw_fps_counter, draw_adaptive_quality
+from game.ui import draw_ui, draw_world_context, draw_npc_label, draw_npc_prompt, draw_npc_description, draw_npc_dialog, draw_npc_world_label, draw_z_target_ui, draw_z_target_marker, draw_npc_ai_telemetry, draw_pickup_notices, draw_combat_notices, draw_fps_counter, draw_adaptive_quality
 from game.save_system import apply_save_to_player
 from game.admin_hub import AdminHub
 from game.debug_log import log_event, log_exception, log_throttled
@@ -315,6 +315,7 @@ def update(dt):
     norm = math.hypot(dx_move, dz_move)
     if norm > 0:
         dx_move /= norm; dz_move /= norm
+    player.is_sprinting = bool(update.is_sprinting and norm > 0.001)
 
     with perf_tracker.measure("world_context"):
         update_player_world_context(dt)
@@ -462,6 +463,7 @@ def render_3d():
         adaptive_streaming=adaptive_streaming,
         world_detail_debug_status=world_detail_debug_status,
         resource_amount_func=_resource_amount_for_world_detail,
+        resource_runtime=resource_runtime,
         player=player,
         enemies=enemies,
         npcs=npcs,
@@ -508,6 +510,7 @@ def render_2d():
         z_target_screen=z_target_screen,
         draw_ui=draw_ui,
         draw_pickup_notices=draw_pickup_notices,
+        draw_combat_notices=draw_combat_notices,
         draw_world_context=draw_world_context,
         draw_adaptive_quality=draw_adaptive_quality,
         draw_fps_counter=draw_fps_counter,

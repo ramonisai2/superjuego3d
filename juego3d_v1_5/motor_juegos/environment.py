@@ -122,6 +122,7 @@ def calculate_chunk_data_background(cx, cz, size, subdivisions, seed):
 
     quads_data, grass_data, rock_data, deco_data, water_data = [], [], [], [], []
     lake_impostor_cells = []
+    camp_count = 0
     np.random.seed(seed + cx * 73 + cz * 37)
 
     for i in range(subdivisions):
@@ -133,6 +134,7 @@ def calculate_chunk_data_background(cx, cz, size, subdivisions, seed):
 
             h00, h10, h11, h01 = h_map[i,j], h_map[i+1,j], h_map[i+1,j+1], h_map[i,j+1]
             avg_h = (h00+h10+h11+h01)/4.0
+            terrain_spread = max(h00, h10, h11, h01) - min(h00, h10, h11, h01)
             avg_m = (m_map[i,j]+m_map[i+1,j]+m_map[i+1,j+1]+m_map[i,j+1])/4.0
             avg_temp = (temp_map[i,j]+temp_map[i+1,j]+temp_map[i+1,j+1]+temp_map[i,j+1])/4.0
             avg_rareza = (rareza_map[i,j]+rareza_map[i+1,j]+rareza_map[i+1,j+1]+rareza_map[i,j+1])/4.0
@@ -180,6 +182,30 @@ def calculate_chunk_data_background(cx, cz, size, subdivisions, seed):
                 local_deco_type = None
                 local_deco_chance = 0.0
 
+            if (
+                camp_count < 1
+                and has_grass
+                and not es_cueva
+                and not es_agua
+                and not es_orilla
+                and terrain_spread <= 0.85
+                and -1.0 <= avg_h <= 18.0
+            ):
+                camp_chance = 0.00016 * float(detail_density["deco"])
+                if avg_m > 0.72:
+                    camp_chance *= 0.55
+                if np.random.rand() < camp_chance:
+                    rx = np.random.uniform(x1, x2)
+                    rz = np.random.uniform(z1, z2)
+                    tx = (rx-x1)/step
+                    tz = (rz-z1)/step
+                    h0 = h00*(1-tx)+h10*tx
+                    h1 = h01*(1-tx)+h11*tx
+                    suelo = h0*(1-tz)+h1*tz
+                    variant = "con_bolsa" if np.random.rand() < 0.35 else "vacio"
+                    deco_data.append(("campamento_abandonado", rx, suelo, rz, variant))
+                    camp_count += 1
+
             ruido = np.random.choice([0.0, 0.012, -0.012])
             quads_data.append(([max(0,min(1,c+ruido)) for c in color],
                                (x1,h00,z1),(x2,h10,z1),(x2,h11,z2),(x1,h01,z2)))
@@ -222,6 +248,26 @@ def calculate_chunk_data_background(cx, cz, size, subdivisions, seed):
                     grass_h = np.random.uniform(0.12,0.22) if not es_orilla else np.random.uniform(0.18,0.38)
                     grass_data.append(([max(0,min(1,c+np.random.uniform(-0.03,0.03))) for c in color],
                                        gx, h_map[ix,iz], gz, grass_h))
+
+            # Piedras sueltas: recurso recogible distinto a las rocas minables.
+            if not es_cueva and not es_agua:
+                rocky_bias = min(0.055, rock_chance * 0.70)
+                dry_bias = max(0.0, 0.46 - avg_m) * 0.010
+                high_bias = max(0.0, avg_h - 9.0) * 0.0012
+                plain_penalty = 0.55 if has_grass and avg_m > 0.62 else 1.0
+                loose_stone_chance = (0.004 + rocky_bias + dry_bias + high_bias) * plain_penalty
+                if es_orilla:
+                    loose_stone_chance *= 0.45
+                if np.random.rand() < min(0.060, loose_stone_chance):
+                    rx = np.random.uniform(x1, x2)
+                    rz = np.random.uniform(z1, z2)
+                    tx = (rx-x1)/step
+                    tz = (rz-z1)/step
+                    h0 = h00*(1-tx)+h10*tx
+                    h1 = h01*(1-tx)+h11*tx
+                    suelo = h0*(1-tz)+h1*tz
+                    variant = np.random.choice(["gris", "oscura", "clara"])
+                    deco_data.append(("piedra_suelta", rx, suelo, rz, variant))
 
             # Rocas
             if not es_cueva and np.random.rand() < rock_chance:

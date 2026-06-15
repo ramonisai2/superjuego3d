@@ -25,6 +25,7 @@ def render_runtime_hud(
     z_target_screen,
     draw_ui,
     draw_pickup_notices,
+    draw_combat_notices,
     draw_world_context,
     draw_adaptive_quality,
     draw_fps_counter,
@@ -40,6 +41,7 @@ def render_runtime_hud(
     r2d.begin_2d(ancho, alto)
     draw_ui(player)
     draw_pickup_notices(player)
+    draw_combat_notices(player, ancho, alto)
     draw_world_context(player)
     fps = engine.clock.get_fps() if engine and hasattr(engine, "clock") else 0
     draw_adaptive_quality(adaptive_quality.get("state", "OK"), adaptive_quality.get("scale", 1.0), ancho - 222, alto - 44)
@@ -93,7 +95,7 @@ def render_runtime_hud(
     if npc_label_screen:
         draw_npc_world_label(npc_name_label, npc_label_screen[0], npc_label_screen[1])
 
-    draw_z_target_ui(z_target, z_target_type)
+    draw_z_target_ui(z_target, z_target_type, player)
     draw_z_target_marker(z_target_screen)
     draw_npc_ai_telemetry()
 

@@ -51,7 +51,6 @@ def attack_enemy(player, enemies, locked_target=None, attack_range=ATTACK_RANGE)
                 hit_any = True
                 break
 
-    enemies[:] = [e for e in enemies if e.health > 0]
     if hit_any and hasattr(player, "use_weapon_once"):
         player.use_weapon_once()
     return hit_any
